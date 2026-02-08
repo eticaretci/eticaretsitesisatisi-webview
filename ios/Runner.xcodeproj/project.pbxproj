@@ -14,6 +14,10 @@
 				97C1712F1CF901A1007E115D /* Frameworks */,
 				97C171301CF901A1007E115D /* Resources */,
 			);
+			buildRules = (
+			);
+			dependencies = (
+			);
 			name = Runner;
 			productName = Runner;
 			productReference = 97C171321CF901A1007E115D /* Runner.app */;
@@ -22,7 +26,7 @@
 		97C171291CF901A1007E115D /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1500;
+				LastUpgradeCheck = 1510;
 				TargetAttributes = {
 					97C171311CF901A1007E115D = {
 						CreatedOnToolsVersion = 7.3.1;
@@ -60,10 +64,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		97C171431CF901A1007E115D /* Debug */ = { isa = XCBuildConfiguration; name = Debug; };
-		97C171441CF901A1007E115D /* Release */ = { isa = XCBuildConfiguration; name = Release; };
-		97C171451CF901A1007E115D /* Debug */ = { isa = XCBuildConfiguration; name = Debug; };
-		97C171461CF901A1007E115D /* Release */ = { isa = XCBuildConfiguration; name = Release; };
+		97C171431CF901A1007E115D /* Debug */ = {isa = XCBuildConfiguration; name = Debug;};
+		97C171441CF901A1007E115D /* Release */ = {isa = XCBuildConfiguration; name = Release;};
+		97C171451CF901A1007E115D /* Debug */ = {isa = XCBuildConfiguration; name = Debug;};
+		97C171461CF901A1007E115D /* Release */ = {isa = XCBuildConfiguration; name = Release;};
+		97C171321CF901A1007E115D /* Runner.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Runner.app; sourceTree = BUILT_PRODUCTS_DIR;};
+		9740EEB61CF901F600779339 /* ShellScript */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = (); name = ShellScript; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "exit 0";};
+		97C1712E1CF901A1007E115D /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+		97C1712F1CF901A1007E115D /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+		97C171301CF901A1007E115D /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 	};
 	rootObject = 97C171291CF901A1007E115D /* Project object */;
 }
