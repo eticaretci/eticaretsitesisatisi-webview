@@ -43,7 +43,7 @@ class WebViewPage extends StatefulWidget {
 class _WebViewPageState extends State<WebViewPage> {
   @override
   Widget build(BuildContext context) {
-    const String siteUrl = String.fromEnvironment('SITE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+    const String siteUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
     
     return Scaffold(
       backgroundColor: Colors.white,
@@ -75,3 +75,4 @@ class _WebViewPageState extends State<WebViewPage> {
     );
   }
 }
+
