@@ -10,15 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-  flutter_inappwebview: ^6.0.0
-
-
+  webview_flutter: ^4.7.0
+  webview_flutter_android: ^3.15.0
+  webview_flutter_wkwebview: ^3.13.0
   permission_handler: ^11.3.1
-
-
   url_launcher: ^6.2.5
-
   http: ^1.2.0
 
 dev_dependencies:
@@ -28,3 +24,4 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
