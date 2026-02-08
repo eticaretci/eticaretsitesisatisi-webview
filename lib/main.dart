@@ -1,78 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-void main() async {
+const String baseUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await [
-    Permission.camera, 
-    Permission.microphone,
-    Permission.photos, 
-    Permission.storage
-  ].request();
-  
-  runApp(const MyApp());
+  runApp(const UniversalEticaretSitesiSatisiApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-  
+class UniversalEticaretSitesiSatisiApp extends StatefulWidget {
+  const UniversalEticaretSitesiSatisiApp({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'Eticaret Sitesi');
-    const String themeColorHex = String.fromEnvironment('THEME_COLOR', defaultValue: '#000000');
-    
-    return MaterialApp(
-      title: appName,
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: Color(int.parse(themeColorHex.replaceFirst('#', '0xff'))),
-      ),
-      home: const WebViewPage(),
-    );
+  State<UniversalEticaretSitesiSatisiApp> createState() => _UniversalEticaretSitesiSatisiAppState();
+}
+
+class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSitesiSatisiApp> {
+  String? finalSiteUrl;
+  String appName = "...";
+  Color mainColor = Colors.blue;
+  bool isReady = false;
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeApp();
   }
-}
 
-class WebViewPage extends StatefulWidget {
-  const WebViewPage({super.key});
-  @override
-  State<WebViewPage> createState() => _WebViewPageState();
-}
+  Future<void> _initializeApp() async {
 
-class _WebViewPageState extends State<WebViewPage> {
-  @override
-  Widget build(BuildContext context) {
-    const String siteUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-    
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: InAppWebView(
-          initialUrlRequest: URLRequest(url: WebUri(siteUrl)),
-          initialSettings: InAppWebViewSettings(
-            javaScriptEnabled: true,
-            allowsInlineMediaPlayback: true,
-            useOnDownloadStart: true,
-            useOnLongPressRequestOverride: true,
-            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-          ),
-          onPermissionRequest: (controller, request) async {
-            return PermissionResponse(
-              resources: request.resources,
-              action: PermissionResponseAction.GRANT,
-            );
-          },
-          shouldOverrideUrlLoading: (controller, navigationAction) async {
-            var uri = navigationAction.request.url;
-            if (uri != null && !["http", "https", "file", "chrome", "data", "javascript"].contains(uri.scheme)) {
-              return NavigationActionPolicy.CANCEL;
+    await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos].request();
+
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/index.php?ozesbilisim=api/app_config")).timeout(const Duration(seconds: 8));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          finalSiteUrl = data['site_url'] ?? baseUrl;
+          appName = data['app_name'] ?? "Eticaret Sitesi";
+          mainColor = Color(int.parse((data['theme_color'] ?? "#000000").replaceAll('#', '0xff')));
+          isReady = true;
+        });
+      } else {
+        _setDefaults();
+      }
+    } catch (e) {
+      _setDefaults();
+    }
+    _setupWebView();
+  }
+
+  void _setDefaults() {
+    setState(() {
+      finalSiteUrl = baseUrl;
+      appName = "Eticaret Sitesi";
+      mainColor = Colors.black;
+      isReady = true;
+    });
+  }
+
+  void _setupWebView() {
+    late final PlatformWebViewControllerCreationParams params;
+    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
+      params = WebKitWebViewControllerCreationParams(allowsInlineMediaPlayback: true);
+    } else {
+      params = const PlatformWebViewControllerCreationParams();
+    }
+
+    final WebViewController controller = WebViewController.fromPlatformCreationParams(params);
+
+    controller
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) {
+            if (!request.url.startsWith('http')) {
+              launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
+              return NavigationDecision.prevent;
             }
-            return NavigationActionPolicy.ALLOW;
+            return NavigationDecision.navigate;
           },
         ),
+      )
+      ..loadRequest(Uri.parse(finalSiteUrl!));
+
+    if (controller.platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+      (controller.platform as AndroidWebViewController).setGeolocationPermissionsPromptCallbacks(
+        onShowPrompt: (request) async => const GeolocationPermissionsResponse(allow: true, retain: false),
+      );
+    }
+
+    _controller = controller;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: isReady ? AppBar(
+          title: Text(appName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          backgroundColor: mainColor,
+          centerTitle: true,
+          elevation: 2,
+        ) : null,
+        body: isReady 
+            ? SafeArea(child: WebViewWidget(controller: _controller))
+            : const Center(child: CircularProgressIndicator()),
       ),
     );
   }
 }
-
