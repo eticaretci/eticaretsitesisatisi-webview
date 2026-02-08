@@ -1,3 +1,0 @@
-NSCameraUsageDescription = "Нам нужен доступ к камере для загрузки изображений товаров.";
-NSMicrophoneUsageDescription = "Нам нужен доступ к микрофону для голосовой поддержки.";
-NSPhotoLibraryUsageDescription = "Нам нужно разрешение на выбор фотографий из вашей галереи.";

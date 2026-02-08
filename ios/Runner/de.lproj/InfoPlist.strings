@@ -1,3 +1,0 @@
-NSCameraUsageDescription = "Wir benötigen Kamerazugriff, um Produktbilder hochzuladen.";
-NSMicrophoneUsageDescription = "Wir benötigen Mikrofonzugriff für den Sprachsupport.";
-NSPhotoLibraryUsageDescription = "Wir benötigen die Erlaubnis, Fotos aus Ihrer Galerie auszuwählen.";
