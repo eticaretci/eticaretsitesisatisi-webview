@@ -1,1 +1,3 @@
-
+NSCameraUsageDescription = "Ürün görseli yüklemek için kameranıza ihtiyacımız var.";
+NSMicrophoneUsageDescription = "Sesli destek için mikrofonunuza ihtiyacımız var.";
+NSPhotoLibraryUsageDescription = "Galerinizden fotoğraf seçmek için izin vermelisiniz.";
