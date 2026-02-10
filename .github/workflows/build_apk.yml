@@ -33,26 +33,10 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # 1. Android yapılandırmasını Java diliyle oluştur (Kotlin hatalarını engeller)
-          flutter create . --platforms android --android-language java --overwrite
+          # 1. Her şeyi temizle ve standart bir isimle projeyi kur
+          rm -rf .[^.]* * flutter create . --platforms android --android-language java --org com.example --project-name webview_app --overwrite
 
-          # 2. Mevcut tüm Kotlin klasörlerini temizle (Hata kaynağını yok et)
-          rm -rf android/app/src/main/kotlin
-
-          # 3. Java tabanlı MainActivity dosyasını oluştur
-          # Not: Paket isminin doğruluğundan emin olmak için dizini manuel oluşturuyoruz
-          mkdir -p android/app/src/main/java/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/
-          
-          cat <<EOF > android/app/src/main/java/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/MainActivity.java
-          package com.eticaretsitesisatisi.universal_eticaretsitesisatisi_app;
-
-          import io.flutter.embedding.android.FlutterActivity;
-
-          public class MainActivity extends FlutterActivity {
-          }
-          EOF
-
-          # 4. pubspec.yaml dosyasını yazdır
+          # 2. pubspec.yaml dosyasını tertemiz yazdır
           cat <<EOF > pubspec.yaml
           name: webview_app
           description: A new Flutter project.
@@ -79,13 +63,22 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 5. main.dart dosyasını yazdır
+          # 3. MainActivity.java dosyasını standart yola yerleştir
+          mkdir -p android/app/src/main/java/com/example/webview_app/
+          cat <<EOF > android/app/src/main/java/com/example/webview_app/MainActivity.java
+          package com.example.webview_app;
+          import io.flutter.embedding.android.FlutterActivity;
+          public class MainActivity extends FlutterActivity { }
+          EOF
+
+          # 4. main.dart dosyasını yazdır
+          mkdir -p lib
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
           void main() {
-            const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-            const String aT = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
+            const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
+            const String aT = String.fromEnvironment('APP_NAME', defaultValue: 'App');
             runApp(MaterialApp(
               debugShowCheckedModeBanner: false,
               theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
@@ -97,7 +90,7 @@ jobs:
           }
           EOF
 
-          # 6. Paketleri çek
+          # 5. Bağımlılıkları tazele
           flutter pub get
 
       - name: Prepare Assets & Logo
