@@ -31,15 +31,20 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Fix Android Project & Dependencies
+      - name: Create Project and Fix Manifest
         run: |
-          # 1. Tam Temizlik
-          rm -rf android lib assets pubspec.yaml test
-          
-          # 2. Proje Oluşturma
+          # 1. Temizlik ve Proje Oluşturma
+          rm -rf .[0-9a-zA-Z]* *
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
-          # 3. pubspec.yaml
+          # 2. Manifest Dosyasını Güvenli Modda Düzenle (SED kullanarak)
+          # İnternet ve diğer izinleri <manifest> etiketinin hemen altına ekle
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
+          
+          # cleartextTraffic ekle (HTTP siteler için)
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+
+          # 3. pubspec.yaml Güncelleme
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -64,66 +69,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. Manifest Fix (cat <<'EOF' kullanımı kritik: android:name kısımlarını korur)
-          cat <<'EOF' > android/app/src/main/AndroidManifest.xml
-          <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android">
-              <uses-permission android:name="android.permission.INTERNET"/>
-              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-              <uses-permission android:name="android.permission.CAMERA"/>
-              <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-              
-              <queries>
-                  <intent>
-                      <action android:name="android.intent.action.VIEW" />
-                      <data android:scheme="https" />
-                  </intent>
-                  <intent>
-                      <action android:name="android.intent.action.DIAL" />
-                  </intent>
-                  <intent>
-                      <action android:name="android.intent.action.VIEW" />
-                      <data android:scheme="whatsapp" />
-                  </intent>
-              </queries>
-
-              <application
-                  android:label="webview_app"
-                  android:icon="@mipmap/ic_launcher"
-                  android:usesCleartextTraffic="true">
-                  <activity
-                      android:name=".MainActivity"
-                      android:exported="true"
-                      android:launchMode="singleTop"
-                      android:theme="@style/LaunchTheme"
-                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-                      android:hardwareAccelerated="true"
-                      android:windowSoftInputMode="adjustResize">
-                      <meta-data
-                          android:name="io.flutter.embedding.android.NormalTheme"
-                          android:resource="@style/NormalTheme" />
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-                  <meta-data
-                      android:name="flutterEmbedding"
-                      android:value="2" />
-              </application>
-          </manifest>
-          EOF
-
-          # 5. MainActivity.java
-          mkdir -p android/app/src/main/java/com/eticaret/webview_app/
-          cat <<'EOF' > android/app/src/main/java/com/eticaret/webview_app/MainActivity.java
-          package com.eticaret.webview_app;
-          import io.flutter.embedding.android.FlutterActivity;
-          public class MainActivity extends FlutterActivity { }
-          EOF
-
-          # 6. lib/main.dart
+          # 4. lib/main.dart (Temiz Kod)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
@@ -149,16 +95,15 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _requestPermissions();
-              const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-              
+              _requestPerms();
+              const String baseUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
                 ..setBackgroundColor(Colors.white)
                 ..setNavigationDelegate(
                   NavigationDelegate(
-                    onProgress: (int progress) => setState(() { _loadingProgress = progress; }),
-                    onNavigationRequest: (NavigationRequest request) async {
+                    onProgress: (p) => setState(() => _loadingProgress = p),
+                    onNavigationRequest: (request) async {
                       final url = request.url;
                       if (url.startsWith('tel:') || url.startsWith('whatsapp:') || url.contains('wa.me')) {
                         if (await canLaunchUrl(Uri.parse(url))) {
@@ -170,10 +115,10 @@ jobs:
                     },
                   ),
                 )
-                ..loadRequest(Uri.parse(rU));
+                ..loadRequest(Uri.parse(baseUrl));
             }
 
-            Future<void> _requestPermissions() async {
+            Future<void> _requestPerms() async {
               await [Permission.camera, Permission.microphone, Permission.notification].request();
             }
 
@@ -185,7 +130,7 @@ jobs:
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.black),
+                        LinearProgressIndicator(value: _loadingProgress / 100.0),
                     ],
                   ),
                 ),
@@ -193,15 +138,15 @@ jobs:
             }
           }
           EOF
-          flutter pub get
 
-      - name: Prepare Assets & Logo
+      - name: Process Assets
         run: |
           mkdir -p assets
           curl -fsSL -o assets/logo.png "${{ github.event.inputs.logo_url }}"
+          flutter pub get
           flutter pub run flutter_launcher_icons
 
-      - name: Build Global APK
+      - name: Build APK
         run: |
           flutter build apk --release \
             --no-tree-shake-icons \
