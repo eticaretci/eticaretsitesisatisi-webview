@@ -23,8 +23,8 @@ class UniversalEticaretSitesiSatisiApp extends StatefulWidget {
 
 class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSitesiSatisiApp> {
   String? finalSiteUrl;
-  String appName = "...";
-  Color mainColor = Colors.blue;
+  String appName = "Yükleniyor...";
+  Color mainColor = Colors.black;
   bool isReady = false;
   late final WebViewController _controller;
 
@@ -35,7 +35,6 @@ class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSite
   }
 
   Future<void> _initializeApp() async {
-
     await [Permission.camera, Permission.microphone, Permission.storage, Permission.photos].request();
 
     try {
@@ -46,7 +45,8 @@ class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSite
         setState(() {
           finalSiteUrl = data['site_url'] ?? baseUrl;
           appName = data['app_name'] ?? "Eticaret Sitesi";
-          mainColor = Color(int.parse((data['theme_color'] ?? "#000000").replaceAll('#', '0xff')));
+          String colorCode = data['theme_color'] ?? "#000000";
+          mainColor = Color(int.parse(colorCode.replaceAll('#', '0xff')));
           isReady = true;
         });
       } else {
@@ -89,15 +89,16 @@ class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSite
             }
             return NavigationDecision.navigate;
           },
+          onWebResourceError: (WebResourceError error) {
+            debugPrint("Sayfa hatası: ${error.description}");
+          },
         ),
       )
       ..loadRequest(Uri.parse(finalSiteUrl!));
 
     if (controller.platform is AndroidWebViewController) {
       AndroidWebViewController.enableDebugging(true);
-      (controller.platform as AndroidWebViewController).setGeolocationPermissionsPromptCallbacks(
-        onShowPrompt: (request) async => const GeolocationPermissionsResponse(allow: true, retain: false),
-      );
+      (controller.platform as AndroidWebViewController).setMediaPlaybackRequiresUserGesture(false);
     }
 
     _controller = controller;
@@ -109,10 +110,9 @@ class _UniversalEticaretSitesiSatisiAppState extends State<UniversalEticaretSite
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         appBar: isReady ? AppBar(
-          title: Text(appName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          title: Text(appName, style: const TextStyle(color: Colors.white, fontSize: 18)),
           backgroundColor: mainColor,
           centerTitle: true,
-          elevation: 2,
         ) : null,
         body: isReady 
             ? SafeArea(child: WebViewWidget(controller: _controller))
