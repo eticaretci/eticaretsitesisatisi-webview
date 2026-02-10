@@ -34,7 +34,7 @@ jobs:
       - name: Fix Android Project (Eksik Dosyaları Oluştur)
         run: |
           # Bu komut gradlew dahil tüm eksik dosyaları sıfırdan yaratır
-          flutter create . --platforms android
+          flutter create . --platforms android --overwrite
           flutter pub get
 
       - name: Prepare Assets & Logo
