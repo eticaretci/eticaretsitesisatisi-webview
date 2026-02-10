@@ -41,12 +41,11 @@ jobs:
           flutter pub add webview_flutter
           flutter pub add permission_handler
           
-          # İkon yapılandırmasını pubspec.yaml sonuna ekle
-          echo "flutter_launcher_icons:" >> pubspec.yaml
+          # iOS: false yaparak iOS hata vermesini engelliyoruz
+          echo "flutter_launcher_icons:" > pubspec.yaml
           echo "  android: true" >> pubspec.yaml
-          echo "  ios: true" >> pubspec.yaml
+          echo "  ios: false" >> pubspec.yaml
           echo "  image_path: \"assets/logo.png\"" >> pubspec.yaml
-          echo "  remove_alpha_channel_ios: true" >> pubspec.yaml
           
           flutter pub get
 
