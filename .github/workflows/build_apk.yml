@@ -50,11 +50,14 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
+          flutter clean
+          flutter pub get
           # gradlew artık oluşturuldu, yetki veriyoruz
           chmod +x android/gradlew
           
           flutter build apk --release \
             --no-tree-shake-icons \
+            --android-skip-build-dependency-validation \
             --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
             --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
 
