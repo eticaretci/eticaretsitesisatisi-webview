@@ -1,6 +1,6 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"  // Bunu "org.jetbrains.kotlin.android" yerine yazdık
+    id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
@@ -16,8 +16,8 @@ android {
     namespace "com.eticaretsitesisatisi.app"
     compileSdk 34
 
-sourceSets {
-        main.java.srcDirs += 'src/main/java'   // BU EKSİKTİ, EKLEDİK
+    sourceSets {
+        main.java.srcDirs += 'src/main/java'
         main.java.srcDirs += 'src/main/kotlin'
     }
 
