@@ -51,13 +51,13 @@ jobs:
           flutter clean
           flutter pub get
           
-          # Gradle izinlerini ayarla ve temizlik yap
-          cd android
-          chmod +x gradlew
-          ./gradlew clean
-          cd ..
-
-          # V1 embedding hatasını susturmak için --no-pub parametresi ve define'lar
+          # Gradlew dosyasının tam yolunu kullanarak yetki veriyoruz
+          chmod +x android/gradlew
+          
+          # Gradle temizliğini ana dizinden yapıyoruz
+          ./android/gradlew clean -p android
+          
+          # Derlemeyi başlatıyoruz
           flutter build apk --release \
             --no-tree-shake-icons \
             --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
