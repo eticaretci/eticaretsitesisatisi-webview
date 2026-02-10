@@ -36,7 +36,17 @@ jobs:
           # 1. Android klasörünü zorla oluştur (bu pubspec.yaml ve main.dart'ı sıfırlar)
           flutter create . --platforms android --overwrite
 
-          # 2. pubspec.yaml dosyasını DOĞRU ve PAKETLERLE beraber yeniden yazdırıyoruz
+          # 2. HATAYI ÇÖZEN KISIM: MainActivity.kt dosyasını manuel olarak düzeltiyoruz
+          # Projenin paket yolunu oluştur ve dosyayı içine yaz
+          mkdir -p android/app/src/main/kotlin/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/
+          cat <<EOF > android/app/src/main/kotlin/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/MainActivity.kt
+          package com.eticaretsitesisatisi.universal_eticaretsitesisatisi_app
+          import io.flutter.embedding.android.FlutterActivity
+          class MainActivity: FlutterActivity() {
+          }
+          EOF
+
+          # 3. pubspec.yaml dosyasını DOĞRU ve PAKETLERLE beraber yeniden yazdırıyoruz
           cat <<EOF > pubspec.yaml
           name: webview_app
           description: A new Flutter project.
@@ -63,7 +73,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 3. BOZULAN main.dart dosyasını da senin sağlam kodunla tamir ediyoruz
+          # 4. BOZULAN main.dart dosyasını da senin sağlam kodunla tamir ediyoruz
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
@@ -81,7 +91,7 @@ jobs:
           }
           EOF
 
-          # 4. Paketleri şimdi tertemiz çek
+          # 5. Paketleri şimdi tertemiz çek
           flutter pub get
 
       - name: Prepare Assets & Logo
