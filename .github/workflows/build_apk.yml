@@ -36,10 +36,10 @@ jobs:
           # 1. Tam Temizlik
           rm -rf android lib assets pubspec.yaml test
           
-          # 2. Projeyi Güncel Yapıda Oluştur
+          # 2. Projeyi Oluştur
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
-          # 3. pubspec.yaml
+          # 3. pubspec.yaml (Değişken içermediği için normal yazılabilir)
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -64,9 +64,8 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. ANDROID V2 EMBEDDING FIX (Hata Veren Kısım Burasıydı)
-          # Manifest'i v2 standartlarına göre sıfırdan yazıyoruz
-          cat <<EOF > android/app/src/main/AndroidManifest.xml
+          # 4. Manifest Fix (Tırnaklı 'EOF' kullanarak içeriği koruyoruz)
+          cat <<'EOF' > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -76,8 +75,7 @@ jobs:
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
               
               <application
-                  android:label="${{ github.event.inputs.app_name }}"
-                  android:name="\${applicationName}"
+                  android:label="webview_app"
                   android:icon="@mipmap/ic_launcher"
                   android:usesCleartextTraffic="true">
                   <activity
@@ -106,17 +104,17 @@ jobs:
           </manifest>
           EOF
 
-          # 5. MainActivity.java (V2 uyumlu temiz dosya)
+          # 5. MainActivity.java
           mkdir -p android/app/src/main/java/com/eticaret/webview_app/
-          cat <<EOF > android/app/src/main/java/com/eticaret/webview_app/MainActivity.java
+          cat <<'EOF' > android/app/src/main/java/com/eticaret/webview_app/MainActivity.java
           package com.eticaret.webview_app;
           import io.flutter.embedding.android.FlutterActivity;
           public class MainActivity extends FlutterActivity { }
           EOF
 
-          # 6. lib/main.dart (İşlevsel WebView)
+          # 6. lib/main.dart
           mkdir -p lib
-          cat <<EOF > lib/main.dart
+          cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
           import 'package:url_launcher/url_launcher.dart';
@@ -140,7 +138,7 @@ jobs:
             @override
             void initState() {
               super.initState();
-              Permission.camera.request();
+              _requestPermissions();
               const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -149,9 +147,10 @@ jobs:
                   NavigationDelegate(
                     onProgress: (int progress) => setState(() { _loadingProgress = progress; }),
                     onNavigationRequest: (NavigationRequest request) async {
-                      if (request.url.startsWith('tel:') || request.url.startsWith('whatsapp:') || request.url.contains('wa.me')) {
-                        if (await canLaunchUrl(Uri.parse(request.url))) {
-                          await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
+                      final url = request.url;
+                      if (url.startsWith('tel:') || url.startsWith('whatsapp:') || url.contains('wa.me')) {
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                         }
                         return NavigationDecision.prevent;
                       }
@@ -159,7 +158,11 @@ jobs:
                     },
                   ),
                 )
-                ..loadRequest(Uri.parse(rU.startsWith('http') ? rU : 'https://\$rU'));
+                ..loadRequest(Uri.parse(rU));
+            }
+
+            Future<void> _requestPermissions() async {
+              await [Permission.camera, Permission.microphone, Permission.notification].request();
             }
 
             @override
