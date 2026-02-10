@@ -16,8 +16,8 @@ android {
     namespace "com.eticaretsitesisatisi.app"
     compileSdk 34
 
-    sourceSets {
-        main.java.srcDirs += 'src/main/java'
+sourceSets {
+        main.java.srcDirs += 'src/main/java'   // BU EKSİKTİ, EKLEDİK
         main.java.srcDirs += 'src/main/kotlin'
     }
 
