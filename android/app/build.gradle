@@ -1,24 +1,16 @@
 plugins {
     id "com.android.application"
-    id "kotlin-android"
+    // Kotlin plugin'i silindi!
     id "dev.flutter.flutter-gradle-plugin"
-}
-
-def localProperties = new Properties()
-def localPropertiesFile = new File(rootProject.projectDir, 'local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
 }
 
 android {
     namespace "com.eticaretsitesisatisi.app"
     compileSdk 34
 
+    // Sadece Java klasörüne bak diyoruz
     sourceSets {
         main.java.srcDirs += 'src/main/java'
-        main.java.srcDirs += 'src/main/kotlin'
     }
 
     defaultConfig {
@@ -30,12 +22,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = '17'
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     buildTypes {
@@ -52,5 +40,5 @@ flutter {
 }
 
 dependencies {
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"
+    // Kotlin kütüphanesi zorunluluğu kaldırıldı
 }
