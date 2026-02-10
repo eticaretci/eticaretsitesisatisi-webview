@@ -4,7 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 void main() {
   // GitHub'dan --dart-define ile gelen verileri yakala
   const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-  const String appTitle = String.fromEnvironment('APP_NAME', defaultValue: 'Eticaret Sitesi');
+  const String appTitle = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
   
   // URL'nin başında http/https yoksa ekle (Hata önleyici)
   final String finalUrl = rawUrl.startsWith('http') ? rawUrl : 'https://$rawUrl';
@@ -12,7 +12,11 @@ void main() {
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     title: appTitle,
-    theme: ThemeData(useMaterial3: true),
+    // ThemeData kısmını hata vermeyecek en stabil hale getirdik
+    theme: ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+    ),
     home: WebViewContainer(url: finalUrl, title: appTitle),
   ));
 }
