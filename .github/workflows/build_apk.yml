@@ -41,7 +41,7 @@ jobs:
       - name: Run Icon Generator
         run: flutter pub run flutter_launcher_icons
 
-       - name: Build Global APK
+      - name: Build Global APK
         run: |
           flutter clean
           flutter pub get
