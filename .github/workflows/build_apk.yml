@@ -31,10 +31,23 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Fix Android Project (Eksik Dosyaları Oluştur)
+      - name: Fix Android Project & Dependencies
         run: |
-          # Bu komut gradlew dahil tüm eksik dosyaları sıfırdan yaratır
+          # Projeyi onar
           flutter create . --platforms android --overwrite
+          
+          # Paketleri ekle
+          flutter pub add flutter_launcher_icons --dev
+          flutter pub add webview_flutter
+          flutter pub add permission_handler
+          
+          # İkon yapılandırmasını pubspec.yaml sonuna ekle
+          echo "flutter_launcher_icons:" >> pubspec.yaml
+          echo "  android: true" >> pubspec.yaml
+          echo "  ios: true" >> pubspec.yaml
+          echo "  image_path: \"assets/logo.png\"" >> pubspec.yaml
+          echo "  remove_alpha_channel_ios: true" >> pubspec.yaml
+          
           flutter pub get
 
       - name: Prepare Assets & Logo
@@ -50,9 +63,7 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
-          flutter clean
-          flutter pub get
-          # gradlew artık oluşturuldu, yetki veriyoruz
+          # Önemli: Android klasörüne girip gradle dosyalarını kontrol et
           chmod +x android/gradlew
           
           flutter build apk --release \
@@ -64,5 +75,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ github.event.inputs.app_name }}-v1"
+          name: "${{ github.event.inputs.app_name }}-apk"
           path: build/app/outputs/flutter-apk/app-release.apk
