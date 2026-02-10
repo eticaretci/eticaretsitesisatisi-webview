@@ -1,7 +1,6 @@
 name: universal_eticaretsitesisatisi_app
 description: "Dinamik Eticaret Sitesi Satisi WebView"
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -21,7 +20,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: "^0.13.1" # Otomatik logo için şart
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
 
 flutter:
   uses-material-design: true
-
+  assets:
+    - assets/logo.png # Logo dosyasını buraya eklemeyi unutma
