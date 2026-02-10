@@ -33,10 +33,13 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # 1. Her şeyi temizle ve standart bir isimle projeyi kur
-          rm -rf .[^.]* * flutter create . --platforms android --android-language java --org com.example --project-name webview_app --overwrite
+          # 1. Eski kalıntıları temizle
+          find . -maxdepth 1 -not -path '*/.*' -not -name '.' -delete
+          
+          # 2. Projeyi tertemiz oluştur (Komutları ayırdım)
+          flutter create . --platforms android --android-language java --org com.example --project-name webview_app --overwrite
 
-          # 2. pubspec.yaml dosyasını tertemiz yazdır
+          # 3. pubspec.yaml dosyasını (TAMAMI)
           cat <<EOF > pubspec.yaml
           name: webview_app
           description: A new Flutter project.
@@ -63,7 +66,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 3. MainActivity.java dosyasını standart yola yerleştir
+          # 4. MainActivity.java (TAMAMI)
           mkdir -p android/app/src/main/java/com/example/webview_app/
           cat <<EOF > android/app/src/main/java/com/example/webview_app/MainActivity.java
           package com.example.webview_app;
@@ -71,14 +74,14 @@ jobs:
           public class MainActivity extends FlutterActivity { }
           EOF
 
-          # 4. main.dart dosyasını yazdır
+          # 5. lib/main.dart (TAMAMI)
           mkdir -p lib
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
           void main() {
-            const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
-            const String aT = String.fromEnvironment('APP_NAME', defaultValue: 'App');
+            const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+            const String aT = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
             runApp(MaterialApp(
               debugShowCheckedModeBanner: false,
               theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue)),
@@ -90,7 +93,7 @@ jobs:
           }
           EOF
 
-          # 5. Bağımlılıkları tazele
+          # 6. Bağımlılıkları tazele
           flutter pub get
 
       - name: Prepare Assets & Logo
@@ -106,9 +109,7 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
-          # Önemli: Android klasörüne girip gradle dosyalarını kontrol et
           chmod +x android/gradlew
-          
           flutter build apk --release \
             --no-tree-shake-icons \
             --android-skip-build-dependency-validation \
