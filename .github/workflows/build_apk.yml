@@ -33,9 +33,13 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
+          # 1. Tam Temizlik
           rm -rf android lib assets pubspec.yaml test
+          
+          # 2. Projeyi Güncel Yapıda Oluştur
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
+          # 3. pubspec.yaml
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -60,14 +64,16 @@ jobs:
               - assets/logo.png
           EOF
 
-          # MANIFEST GÜNCELLEME (INTERNET + BİLDİRİM + SSL)
+          # 4. ANDROID V2 EMBEDDING FIX (Hata Veren Kısım Burasıydı)
+          # Manifest'i v2 standartlarına göre sıfırdan yazıyoruz
           cat <<EOF > android/app/src/main/AndroidManifest.xml
           <manifest xmlns:android="http://schemas.microsoft.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
               <uses-permission android:name="android.permission.CAMERA"/>
               <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-              <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/> <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
               
               <application
                   android:label="${{ github.event.inputs.app_name }}"
@@ -82,16 +88,33 @@ jobs:
                       android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
                       android:hardwareAccelerated="true"
                       android:windowSoftInputMode="adjustResize">
+                      
+                      <meta-data
+                          android:name="io.flutter.embedding.android.NormalTheme"
+                          android:resource="@style/NormalTheme" />
+                          
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
                       </intent-filter>
                   </activity>
+                  
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2" />
               </application>
           </manifest>
           EOF
 
-          # MAIN.DART GÜNCELLEME (İzin İsteme Fonksiyonu Eklendi)
+          # 5. MainActivity.java (V2 uyumlu temiz dosya)
+          mkdir -p android/app/src/main/java/com/eticaret/webview_app/
+          cat <<EOF > android/app/src/main/java/com/eticaret/webview_app/MainActivity.java
+          package com.eticaret.webview_app;
+          import io.flutter.embedding.android.FlutterActivity;
+          public class MainActivity extends FlutterActivity { }
+          EOF
+
+          # 6. lib/main.dart (İşlevsel WebView)
           mkdir -p lib
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
@@ -99,7 +122,7 @@ jobs:
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
 
-          void main() async {
+          void main() {
             WidgetsFlutterBinding.ensureInitialized();
             runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: WebViewPage()));
           }
@@ -117,9 +140,8 @@ jobs:
             @override
             void initState() {
               super.initState();
-              _requestPermissions(); // Uygulama açılınca izinleri iste
-              const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
-              
+              Permission.camera.request();
+              const String rU = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
                 ..setBackgroundColor(Colors.white)
@@ -140,10 +162,6 @@ jobs:
                 ..loadRequest(Uri.parse(rU.startsWith('http') ? rU : 'https://\$rU'));
             }
 
-            Future<void> _requestPermissions() async {
-              await [Permission.camera, Permission.microphone, Permission.location, Permission.notification].request();
-            }
-
             @override
             Widget build(BuildContext context) {
               return Scaffold(
@@ -161,6 +179,12 @@ jobs:
           }
           EOF
           flutter pub get
+
+      - name: Prepare Assets & Logo
+        run: |
+          mkdir -p assets
+          curl -fsSL -o assets/logo.png "${{ github.event.inputs.logo_url }}"
+          flutter pub run flutter_launcher_icons
 
       - name: Build Global APK
         run: |
