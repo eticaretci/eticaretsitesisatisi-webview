@@ -8,16 +8,19 @@ if (localPropertiesFile.exists()) {
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
 if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+    throw new GradleException("Flutter SDK not found.")
 }
 
 apply plugin: 'com.android.application'
-// Java projesinde bu satır hayati önem taşır:
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.eticaretsitesisatisi.app"
     compileSdkVersion 34
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/java'
+    }
 
     defaultConfig {
         applicationId "com.eticaretsitesisatisi.app"
@@ -34,9 +37,7 @@ android {
 }
 
 dependencies {
-    // AndroidX kütüphanelerini manuel zorluyoruz ki 'cannot find symbol' hataları bitsin
     implementation "androidx.annotation:annotation:1.7.0"
     implementation "androidx.appcompat:appcompat:1.6.1"
-    // WebView ve diğerleri için gerekli temel
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
 }
