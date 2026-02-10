@@ -1,1 +1,55 @@
+name: SaaS_Build_Factory
 
+on:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Uygulama Adı'
+        required: true
+      base_url:
+        description: 'Web Sitesi URL'
+        required: true
+      logo_url:
+        description: 'Logo Linki'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Create Assets Folder & Download Logo
+        run: |
+          mkdir -p assets
+          curl -L -o assets/logo.png "${{ github.event.inputs.logo_url }}"
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Icon Generator
+        run: flutter pub run flutter_launcher_icons
+
+      - name: Build Global APK
+        run: |
+          flutter build apk --release \
+          --no-tree-shake-icons \
+          --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
+          --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
+
+      - name: Upload Finished APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ github.event.inputs.app_name }}_v1"
+          path: build/app/outputs/flutter-apk/app-release.apk
