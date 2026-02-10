@@ -4,33 +4,39 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'Uygulama Adı'
+        description: 'Uygulama Adı (Örn: My Shop)'
         required: true
+        default: 'WebviewApp'
       base_url:
-        description: 'Web Sitesi URL'
+        description: 'Web Sitesi URL (Örn: https://site.com)'
         required: true
+        default: 'https://google.com'
       logo_url:
-        description: 'Logo Linki'
+        description: 'Logo Linki (Direct PNG URL)'
         required: true
+        default: 'https://raw.githubusercontent.com/flutter/plugin_screenshots/master/flutter_launcher_icons/logo.png'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
-      - name: Create Assets Folder & Download Logo
+      - name: Prepare Assets & Logo
         run: |
           mkdir -p assets
           curl -L -o assets/logo.png "${{ github.event.inputs.logo_url }}"
@@ -38,20 +44,30 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Run Icon Generator
+      - name: Generate Launcher Icons
         run: flutter pub run flutter_launcher_icons
 
       - name: Build Global APK
+        env:
+          APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
+          # Önceki hatalı v1 kalıntılarını temizler
           flutter clean
           flutter pub get
+          
+          # Android klasöründeki Gradle önbelleğini temizler
+          cd android
+          ./gradlew clean
+          cd ..
+
+          # v2 embedding ile derlemeyi zorlar ve isim/url enjekte eder
           flutter build apk --release \
           --no-tree-shake-icons \
           --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
           --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
 
-      - name: Upload Finished APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ github.event.inputs.app_name }}_v1"
+          name: "${{ github.event.inputs.app_name }}-v1"
           path: build/app/outputs/flutter-apk/app-release.apk
