@@ -33,20 +33,35 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # Projeyi onar
+          # Önce temiz bir proje yapısı oluştur
           flutter create . --platforms android --overwrite
           
-          # Paketleri ekle
-          flutter pub add flutter_launcher_icons --dev
-          flutter pub add webview_flutter
-          flutter pub add permission_handler
-          
-          # iOS: false yaparak iOS hata vermesini engelliyoruz
-          echo "flutter_launcher_icons:" > pubspec.yaml
+          # pubspec.yaml dosyasını manuel olarak sıfırdan ve doğru formatta oluştur
+          echo "name: eticaretsitesisatisi_webview" > pubspec.yaml
+          echo "description: Webview App" >> pubspec.yaml
+          echo "publish_to: 'none'" >> pubspec.yaml
+          echo "version: 1.0.0+1" >> pubspec.yaml
+          echo "environment:" >> pubspec.yaml
+          echo "  sdk: '>=3.0.0 <4.0.0'" >> pubspec.yaml # HATA BURADAN KAYNAKLIYDI, ÇÖZDÜK
+          echo "dependencies:" >> pubspec.yaml
+          echo "  flutter:" >> pubspec.yaml
+          echo "    sdk: flutter" >> pubspec.yaml
+          echo "  webview_flutter: ^4.9.0" >> pubspec.yaml
+          echo "  permission_handler: ^11.3.1" >> pubspec.yaml
+          echo "dev_dependencies:" >> pubspec.yaml
+          echo "  flutter_test:" >> pubspec.yaml
+          echo "    sdk: flutter" >> pubspec.yaml
+          echo "  flutter_launcher_icons: ^0.13.1" >> pubspec.yaml
+          echo "flutter_launcher_icons:" >> pubspec.yaml
           echo "  android: true" >> pubspec.yaml
           echo "  ios: false" >> pubspec.yaml
           echo "  image_path: \"assets/logo.png\"" >> pubspec.yaml
+          echo "flutter:" >> pubspec.yaml
+          echo "  uses-material-design: true" >> pubspec.yaml
+          echo "  assets:" >> pubspec.yaml
+          echo "    - assets/logo.png" >> pubspec.yaml
           
+          # Paketleri şimdi temizce çek
           flutter pub get
 
       - name: Prepare Assets & Logo
