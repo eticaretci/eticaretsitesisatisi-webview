@@ -37,14 +37,11 @@ jobs:
           rm -rf .[0-9a-zA-Z]* *
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
-          # 2. Manifest Dosyasını Güvenli Modda Düzenle (SED kullanarak)
-          # İnternet ve diğer izinleri <manifest> etiketinin hemen altına ekle
+          # 2. Manifest Düzenleme (Hatasız SED kullanımı)
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
-          
-          # cleartextTraffic ekle (HTTP siteler için)
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
-          # 3. pubspec.yaml Güncelleme
+          # 3. pubspec.yaml (Gerekli paketler eklendi)
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -54,6 +51,7 @@ jobs:
             flutter:
               sdk: flutter
             webview_flutter: ^4.9.0
+            webview_flutter_android: ^3.15.0
             url_launcher: ^6.2.5
             permission_handler: ^11.3.1
           dev_dependencies:
@@ -69,11 +67,12 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. lib/main.dart (Temiz Kod)
+          # 4. lib/main.dart (SNI & Cloudflare Fix)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
+          import 'package:webview_flutter_android/webview_flutter_android.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
 
@@ -96,16 +95,20 @@ jobs:
             void initState() {
               super.initState();
               _requestPerms();
-              const String baseUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+              
+              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
+              final String finalUrl = rawUrl.trim().startsWith('http') ? rawUrl.trim() : 'https://${rawUrl.trim()}';
+
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
                 ..setBackgroundColor(Colors.white)
+                ..setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36")
                 ..setNavigationDelegate(
                   NavigationDelegate(
                     onProgress: (p) => setState(() => _loadingProgress = p),
                     onNavigationRequest: (request) async {
                       final url = request.url;
-                      if (url.startsWith('tel:') || url.startsWith('whatsapp:') || url.contains('wa.me')) {
+                      if (!url.startsWith('http')) {
                         if (await canLaunchUrl(Uri.parse(url))) {
                           await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                         }
@@ -114,8 +117,13 @@ jobs:
                       return NavigationDecision.navigate;
                     },
                   ),
-                )
-                ..loadRequest(Uri.parse(baseUrl));
+                );
+
+              if (_controller.platform is AndroidWebViewController) {
+                (_controller.platform as AndroidWebViewController).setGeolocationEnabled(true);
+              }
+              
+              _controller.loadRequest(Uri.parse(finalUrl));
             }
 
             Future<void> _requestPerms() async {
@@ -130,7 +138,7 @@ jobs:
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0),
+                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.black),
                     ],
                   ),
                 ),
