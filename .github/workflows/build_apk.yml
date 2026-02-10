@@ -33,35 +33,60 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # Önce temiz bir proje yapısı oluştur
+          # 1. Önce android klasörünü oluştur (bu main.dart'ı bozar)
           flutter create . --platforms android --overwrite
           
-          # pubspec.yaml dosyasını manuel olarak sıfırdan ve doğru formatta oluştur
-          echo "name: eticaretsitesisatisi_webview" > pubspec.yaml
-          echo "description: Webview App" >> pubspec.yaml
-          echo "publish_to: 'none'" >> pubspec.yaml
-          echo "version: 1.0.0+1" >> pubspec.yaml
-          echo "environment:" >> pubspec.yaml
-          echo "  sdk: '>=3.0.0 <4.0.0'" >> pubspec.yaml # HATA BURADAN KAYNAKLIYDI, ÇÖZDÜK
-          echo "dependencies:" >> pubspec.yaml
-          echo "  flutter:" >> pubspec.yaml
-          echo "    sdk: flutter" >> pubspec.yaml
-          echo "  webview_flutter: ^4.9.0" >> pubspec.yaml
-          echo "  permission_handler: ^11.3.1" >> pubspec.yaml
-          echo "dev_dependencies:" >> pubspec.yaml
-          echo "  flutter_test:" >> pubspec.yaml
-          echo "    sdk: flutter" >> pubspec.yaml
-          echo "  flutter_launcher_icons: ^0.13.1" >> pubspec.yaml
-          echo "flutter_launcher_icons:" >> pubspec.yaml
-          echo "  android: true" >> pubspec.yaml
-          echo "  ios: false" >> pubspec.yaml
-          echo "  image_path: \"assets/logo.png\"" >> pubspec.yaml
-          echo "flutter:" >> pubspec.yaml
-          echo "  uses-material-design: true" >> pubspec.yaml
-          echo "  assets:" >> pubspec.yaml
-          echo "    - assets/logo.png" >> pubspec.yaml
-          
-          # Paketleri şimdi temizce çek
+          # 2. BOZULAN main.dart dosyasını senin kodunla ŞİMDİ tamir ediyoruz
+          cat <<EOF > lib/main.dart
+          import 'package:flutter/material.dart';
+          import 'package:webview_flutter/webview_flutter.dart';
+
+          void main() {
+            const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+            const String appTitle = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
+            final String finalUrl = rawUrl.startsWith('http') ? rawUrl : 'https://\$rawUrl';
+
+            runApp(MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: appTitle,
+              theme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+              ),
+              home: WebViewContainer(url: finalUrl, title: appTitle),
+            ));
+          }
+
+          class WebViewContainer extends StatefulWidget {
+            final String url;
+            final String title;
+            const WebViewContainer({super.key, required this.url, required this.title});
+            @override
+            State<WebViewContainer> createState() => _WebViewContainerState();
+          }
+
+          class _WebViewContainerState extends State<WebViewContainer> {
+            late final WebViewController _controller;
+            @override
+            void initState() {
+              super.initState();
+              _controller = WebViewController()
+                ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                ..setBackgroundColor(Colors.white)
+                ..loadRequest(Uri.parse(widget.url));
+            }
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                appBar: AppBar(title: Text(widget.title), centerTitle: true),
+                body: WebViewWidget(controller: _controller),
+              );
+            }
+          }
+          EOF
+
+          # 3. Diğer işlemlere devam et
+          flutter pub add webview_flutter
           flutter pub get
 
       - name: Prepare Assets & Logo
