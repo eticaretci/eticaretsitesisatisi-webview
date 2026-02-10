@@ -33,15 +33,12 @@ jobs:
 
       - name: Create Project and Fix Manifest
         run: |
-          # 1. Temizlik ve Proje Oluşturma
           rm -rf .[0-9a-zA-Z]* *
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
-          # 2. Manifest Düzenleme (Hatasız SED kullanımı)
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
-          # 3. pubspec.yaml (Gerekli paketler eklendi)
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -67,12 +64,10 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. lib/main.dart (SNI & Cloudflare Fix)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
-          import 'package:webview_flutter_android/webview_flutter_android.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
 
@@ -117,13 +112,8 @@ jobs:
                       return NavigationDecision.navigate;
                     },
                   ),
-                );
-
-              if (_controller.platform is AndroidWebViewController) {
-                (_controller.platform as AndroidWebViewController).setGeolocationEnabled(true);
-              }
-              
-              _controller.loadRequest(Uri.parse(finalUrl));
+                )
+                ..loadRequest(Uri.parse(finalUrl));
             }
 
             Future<void> _requestPerms() async {
@@ -138,7 +128,7 @@ jobs:
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.black),
+                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.blue),
                     ],
                   ),
                 ),
