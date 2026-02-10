@@ -1,20 +1,28 @@
-plugins {
-    id "com.android.application"
-    id "dev.flutter.flutter-gradle-plugin"
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
+    }
 }
+
+def flutterRoot = localProperties.getProperty('flutter.sdk')
+if (flutterRoot == null) {
+    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+}
+
+apply plugin: 'com.android.application'
+// Java projesinde bu satır hayati önem taşır:
+apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.eticaretsitesisatisi.app"
-    compileSdk 34
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/java'
-    }
+    compileSdkVersion 34
 
     defaultConfig {
         applicationId "com.eticaretsitesisatisi.app"
-        minSdk 21
-        targetSdk 34
+        minSdkVersion 21
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
     }
@@ -23,20 +31,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-
-    buildTypes {
-        release {
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
-        }
-    }
-}
-
-flutter {
-    source = "../.."
 }
 
 dependencies {
-    // Kotlin bağımlılığı tamamen kaldırıldı
+    // AndroidX kütüphanelerini manuel zorluyoruz ki 'cannot find symbol' hataları bitsin
+    implementation "androidx.annotation:annotation:1.7.0"
+    implementation "androidx.appcompat:appcompat:1.6.1"
+    // WebView ve diğerleri için gerekli temel
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
 }
