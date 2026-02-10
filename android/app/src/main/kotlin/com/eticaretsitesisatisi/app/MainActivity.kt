@@ -12,7 +12,6 @@ class MainActivity: FlutterActivity() {
     
     override fun onPostResume() {
         super.onPostResume()
-
         val rootView = window.decorView.findViewById<ViewGroup>(android.R.id.content)
         findAndFixWebView(rootView)
     }
