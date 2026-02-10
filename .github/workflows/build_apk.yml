@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       app_name:
-        description: 'Uygulama Adı (Örn: My Shop)'
+        description: 'Uygulama Adı'
         required: true
-        default: 'WebviewApp'
+        default: 'EticaretSites'
       base_url:
-        description: 'Web Sitesi URL (Örn: https://site.com)'
+        description: 'Web Sitesi URL'
         required: true
-        default: 'https://google.com'
+        default: 'https://www.eticaretsitesisatisi.com'
       logo_url:
-        description: 'Logo Linki (Direct PNG URL)'
+        description: 'Logo Linki'
         required: true
-        default: 'https://raw.githubusercontent.com/flutter/plugin_screenshots/master/flutter_launcher_icons/logo.png'
+        default: 'https://www.eticaretsitesisatisi.com/logo.png'
 
 jobs:
   build:
