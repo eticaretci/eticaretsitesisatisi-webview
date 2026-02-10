@@ -20,14 +20,16 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: "^0.13.1" # Otomatik logo için şart
+  flutter_launcher_icons: "^0.13.1"
 
-flutter_icons:
+# İKON AYARLARI - BURASI KRİTİK
+flutter_launcher_icons:
   android: true
-  ios: true
+  ios: false
   image_path: "assets/logo.png"
+  remove_alpha_ios: true
 
 flutter:
   uses-material-design: true
   assets:
-    - assets/logo.png # Logo dosyasını buraya eklemeyi unutma
+    - assets/logo.png
