@@ -8,17 +8,17 @@ if (localPropertiesFile.exists()) {
 
 def flutterRoot = localProperties.getProperty('flutter.sdk')
 if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found. Define location with flutter.sdk in the local.properties file.")
+    throw new GradleException("Flutter SDK not found.")
 }
 
 apply plugin: 'com.android.application'
+// Bu satır Flutter entegrasyonu için mecburidir
 apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.eticaretsitesisatisi.app"
     compileSdkVersion 34
 
-    // v1 embedding hatasını kesin çözmek için bunu ekliyoruz
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
@@ -31,11 +31,21 @@ android {
         versionCode 1
         versionName "1.0"
 
-        // GitHub Actions'dan gelen APP_NAME'i çekiyoruz
-        // Eğer boş gelirse 'Eticaret Sitesi' ismini kullanır
+        // GitHub'dan gelen ismi Android sisteme gömer
         def appName = System.getenv('APP_NAME') ?: "Eticaret Sitesi"
         resValue "string", "app_name", appName
     }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug // Şimdilik hata almamak için debug key kullanıyoruz
+        }
+    }
+}
+
+// BU BLOK EKSİKTİ, EKLEMEN ŞART:
+flutter {
+    source '../..'
 }
 
 dependencies {
