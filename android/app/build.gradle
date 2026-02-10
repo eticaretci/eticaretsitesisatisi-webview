@@ -1,49 +1,41 @@
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
-    }
+plugins {
+    id "com.android.application"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "org.jetbrains.kotlin.android"
 }
-
-def flutterRoot = localProperties.getProperty('flutter.sdk')
-if (flutterRoot == null) {
-    throw new GradleException("Flutter SDK not found.")
-}
-
-apply plugin: 'com.android.application'
-// Bu satır Flutter entegrasyonu için mecburidir
-apply from: "$flutterRoot/packages/flutter_tools/gradle/flutter.gradle"
 
 android {
     namespace "com.eticaretsitesisatisi.app"
-    compileSdkVersion 34
+    compileSdk 34 // 'compileSdkVersion' yerine yeni hali 'compileSdk'
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
 
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+
     defaultConfig {
         applicationId "com.eticaretsitesisatisi.app"
-        minSdkVersion 21
-        targetSdkVersion 34
+        minSdk 21
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
-        // GitHub'dan gelen ismi Android sisteme gömer
-        def appName = System.getenv('APP_NAME') ?: "Eticaret Sitesi"
+        // GitHub Actions'dan gelen ismi çekiyoruz
+        def appName = System.getenv('APP_NAME') ?: "EticaretSitesi"
         resValue "string", "app_name", appName
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug // Şimdilik hata almamak için debug key kullanıyoruz
+            signingConfig signingConfigs.debug
         }
     }
 }
 
-// BU BLOK EKSİKTİ, EKLEMEN ŞART:
 flutter {
     source '../..'
 }
