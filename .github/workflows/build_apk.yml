@@ -6,7 +6,7 @@ on:
       app_name:
         description: 'Uygulama Adı'
         required: true
-        default: 'EticaretSites'
+        default: 'EticaretSitesi'
       base_url:
         description: 'Web Sitesi URL'
         required: true
