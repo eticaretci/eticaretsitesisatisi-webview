@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-// OpenCart / Build Script üzerinden gelen değişkenler
 const String siteUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
 const String themeColorHex = String.fromEnvironment('THEME_COLOR', defaultValue: '#000000');
 const String appName = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Gelen Hex kodunu (#ffffff) Flutter formatına çevirir
+    // Renk kodunu işle
     final Color themeColor = Color(int.parse(themeColorHex.replaceFirst('#', '0xff')));
 
     return MaterialApp(
@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: themeColor,
-        appBarTheme: AppBarTheme(backgroundColor: themeColor),
+        useMaterial3: true, // pubspec'teki modern Flutter yapısına uygun
       ),
       home: const WebViewPage(),
     );
@@ -45,14 +45,24 @@ class _WebViewPageState extends State<WebViewPage> {
     super.initState();
     controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: (NavigationRequest request) async {
+            // WhatsApp, Telefon veya harici linkleri tarayıcıda açar
+            if (!request.url.startsWith('http')) {
+              await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
       ..loadRequest(Uri.parse(siteUrl));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // SafeArea: Çentikli telefonlarda ekranın kaymasını engeller
       body: SafeArea(
         child: WebViewWidget(controller: controller),
       ),
