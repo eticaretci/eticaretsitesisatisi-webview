@@ -33,13 +33,13 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # 1. Eski kalıntıları temizle
-          find . -maxdepth 1 -not -path '*/.*' -not -name '.' -delete
-          
-          # 2. Projeyi tertemiz oluştur (Komutları ayırdım)
+          # 1. Mevcut tüm dosya ve klasörleri zorla sil (Temizlik)
+          rm -rf android lib assets pubspec.yaml test
+
+          # 2. Projeyi Android/Java altyapısıyla baştan yarat
           flutter create . --platforms android --android-language java --org com.example --project-name webview_app --overwrite
 
-          # 3. pubspec.yaml dosyasını (TAMAMI)
+          # 3. pubspec.yaml dosyasını oluştur
           cat <<EOF > pubspec.yaml
           name: webview_app
           description: A new Flutter project.
@@ -66,7 +66,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. MainActivity.java (TAMAMI)
+          # 4. MainActivity.java dosyasını tamir et
           mkdir -p android/app/src/main/java/com/example/webview_app/
           cat <<EOF > android/app/src/main/java/com/example/webview_app/MainActivity.java
           package com.example.webview_app;
@@ -74,7 +74,7 @@ jobs:
           public class MainActivity extends FlutterActivity { }
           EOF
 
-          # 5. lib/main.dart (TAMAMI)
+          # 5. lib/main.dart içeriğini yazdır
           mkdir -p lib
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
@@ -93,7 +93,7 @@ jobs:
           }
           EOF
 
-          # 6. Bağımlılıkları tazele
+          # 6. Paketleri çek
           flutter pub get
 
       - name: Prepare Assets & Logo
