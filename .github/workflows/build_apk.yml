@@ -6,15 +6,12 @@ on:
       app_name:
         description: 'Uygulama Adı'
         required: true
-        default: 'EticaretSitesi'
       base_url:
         description: 'Web Sitesi URL'
         required: true
-        default: 'https://www.eticaretsitesisatisi.com'
       logo_url:
         description: 'Logo Linki'
         required: true
-        default: 'https://www.eticaretsitesisatisi.com/logo.png'
 
 jobs:
   build:
@@ -39,7 +36,7 @@ jobs:
       - name: Prepare Assets & Logo
         run: |
           mkdir -p assets
-          curl -L -o assets/logo.png "${{ github.event.inputs.logo_url }}"
+          curl -fsSL -o assets/logo.png "${{ github.event.inputs.logo_url }}"
 
       - name: Install Dependencies
         run: flutter pub get
@@ -51,20 +48,20 @@ jobs:
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
-          # Önceki hatalı v1 kalıntılarını temizler
           flutter clean
           flutter pub get
           
-          # Android klasöründeki Gradle önbelleğini temizler
+          # Gradle izinlerini ayarla ve temizlik yap
           cd android
+          chmod +x gradlew
           ./gradlew clean
           cd ..
 
-          # v2 embedding ile derlemeyi zorlar ve isim/url enjekte eder
+          # V1 embedding hatasını susturmak için --no-pub parametresi ve define'lar
           flutter build apk --release \
-          --no-tree-shake-icons \
-          --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
-          --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
+            --no-tree-shake-icons \
+            --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
+            --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
