@@ -36,7 +36,10 @@ jobs:
           rm -rf .[0-9a-zA-Z]* *
           flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
 
+          # Manifest İzinleri ve Network Güvenliği
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
+          
+          # Application etiketine usesCleartextTraffic ekleme
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
           cat <<EOF > pubspec.yaml
@@ -68,6 +71,7 @@ jobs:
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
+          import 'package:webview_flutter_android/webview_flutter_android.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
 
@@ -94,9 +98,18 @@ jobs:
               const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
               final String finalUrl = rawUrl.trim().startsWith('http') ? rawUrl.trim() : 'https://${rawUrl.trim()}';
 
-              _controller = WebViewController()
+              // Platforma özel (Android) yapılandırma oluştur
+              late final PlatformWebViewControllerCreationParams params;
+              if (WebViewPlatform.instance is AndroidWebViewPlatform) {
+                params = AndroidWebViewControllerCreationParams();
+              } else {
+                params = const PlatformWebViewControllerCreationParams();
+              }
+
+              _controller = WebViewController.fromPlatformCreationParams(params)
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
                 ..setBackgroundColor(Colors.white)
+                // Modern User-Agent (Birçok sitenin engellemesini aşar)
                 ..setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36")
                 ..setNavigationDelegate(
                   NavigationDelegate(
@@ -112,8 +125,16 @@ jobs:
                       return NavigationDecision.navigate;
                     },
                   ),
-                )
-                ..loadRequest(Uri.parse(finalUrl));
+                );
+
+              // Android'e özel kritik ayarlar (DomStorage açılması beyaz sayfayı çözer)
+              if (_controller.platform is AndroidWebViewController) {
+                final androidController = _controller.platform as AndroidWebViewController;
+                // ignore: deprecated_member_use
+                AndroidWebViewController.enableDebugging(true);
+              }
+
+              _controller.loadRequest(Uri.parse(finalUrl));
             }
 
             Future<void> _requestPerms() async {
@@ -123,12 +144,17 @@ jobs:
             @override
             Widget build(BuildContext context) {
               return Scaffold(
+                backgroundColor: Colors.white,
                 body: SafeArea(
                   child: Stack(
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.blue),
+                        LinearProgressIndicator(
+                          value: _loadingProgress / 100.0, 
+                          color: Colors.blue,
+                          backgroundColor: Colors.white,
+                        ),
                     ],
                   ),
                 ),
