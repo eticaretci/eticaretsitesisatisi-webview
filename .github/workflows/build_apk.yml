@@ -33,20 +33,26 @@ jobs:
 
       - name: Fix Android Project & Dependencies
         run: |
-          # 1. Android klasörünü zorla oluştur (bu pubspec.yaml ve main.dart'ı sıfırlar)
-          flutter create . --platforms android --overwrite
+          # 1. Android yapılandırmasını Java diliyle oluştur (Kotlin hatalarını engeller)
+          flutter create . --platforms android --android-language java --overwrite
 
-          # 2. HATAYI ÇÖZEN KISIM: MainActivity.kt dosyasını manuel olarak düzeltiyoruz
-          # Projenin paket yolunu oluştur ve dosyayı içine yaz
-          mkdir -p android/app/src/main/kotlin/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/
-          cat <<EOF > android/app/src/main/kotlin/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/MainActivity.kt
-          package com.eticaretsitesisatisi.universal_eticaretsitesisatisi_app
-          import io.flutter.embedding.android.FlutterActivity
-          class MainActivity: FlutterActivity() {
+          # 2. Mevcut tüm Kotlin klasörlerini temizle (Hata kaynağını yok et)
+          rm -rf android/app/src/main/kotlin
+
+          # 3. Java tabanlı MainActivity dosyasını oluştur
+          # Not: Paket isminin doğruluğundan emin olmak için dizini manuel oluşturuyoruz
+          mkdir -p android/app/src/main/java/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/
+          
+          cat <<EOF > android/app/src/main/java/com/eticaretsitesisatisi/universal_eticaretsitesisatisi_app/MainActivity.java
+          package com.eticaretsitesisatisi.universal_eticaretsitesisatisi_app;
+
+          import io.flutter.embedding.android.FlutterActivity;
+
+          public class MainActivity extends FlutterActivity {
           }
           EOF
 
-          # 3. pubspec.yaml dosyasını DOĞRU ve PAKETLERLE beraber yeniden yazdırıyoruz
+          # 4. pubspec.yaml dosyasını yazdır
           cat <<EOF > pubspec.yaml
           name: webview_app
           description: A new Flutter project.
@@ -73,7 +79,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. BOZULAN main.dart dosyasını da senin sağlam kodunla tamir ediyoruz
+          # 5. main.dart dosyasını yazdır
           cat <<EOF > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
@@ -91,7 +97,7 @@ jobs:
           }
           EOF
 
-          # 5. Paketleri şimdi tertemiz çek
+          # 6. Paketleri çek
           flutter pub get
 
       - name: Prepare Assets & Logo
