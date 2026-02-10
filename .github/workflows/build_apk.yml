@@ -25,39 +25,34 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
+
+      - name: Fix Android Project (Eksik Dosyaları Oluştur)
+        run: |
+          # Bu komut gradlew dahil tüm eksik dosyaları sıfırdan yaratır
+          flutter create . --platforms android
+          flutter pub get
 
       - name: Prepare Assets & Logo
         run: |
           mkdir -p assets
           curl -fsSL -o assets/logo.png "${{ github.event.inputs.logo_url }}"
 
-      - name: Install Dependencies
-        run: flutter pub get
-
       - name: Generate Launcher Icons
-        run: flutter pub run flutter_launcher_icons
+        run: |
+          flutter pub run flutter_launcher_icons
 
       - name: Build Global APK
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
         run: |
-          flutter clean
-          flutter pub get
-          
-          # Gradlew dosyasının tam yolunu kullanarak yetki veriyoruz
+          # gradlew artık oluşturuldu, yetki veriyoruz
           chmod +x android/gradlew
           
-          # Gradle temizliğini ana dizinden yapıyoruz
-          ./android/gradlew clean -p android
-          
-          # Derlemeyi başlatıyoruz
           flutter build apk --release \
             --no-tree-shake-icons \
             --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
