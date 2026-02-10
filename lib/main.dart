@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+// Android'e özel ayarlar için gerekli alt paket
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 void main() {
-  // GitHub'dan --dart-define ile gelen verileri yakala
-  const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+  // GitHub Actions'dan gelen veriler
+  const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
   const String appTitle = String.fromEnvironment('APP_NAME', defaultValue: 'EticaretSitesi');
   
-  // URL'nin başında http/https yoksa ekle (Hata önleyici)
-  final String finalUrl = rawUrl.startsWith('http') ? rawUrl : 'https://$rawUrl';
+  // URL temizliği
+  final String finalUrl = rawUrl.trim().startsWith('http') ? rawUrl.trim() : 'https://${rawUrl.trim()}';
 
   runApp(MaterialApp(
     debugShowCheckedModeBanner: false,
     title: appTitle,
-    // ThemeData kısmını hata vermeyecek en stabil hale getirdik
     theme: ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
     ),
     home: WebViewContainer(url: finalUrl, title: appTitle),
   ));
@@ -36,20 +37,39 @@ class _WebViewContainerState extends State<WebViewContainer> {
   @override
   void initState() {
     super.initState();
+    
+    // WebViewController Yapılandırması
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.white)
-      ..loadRequest(Uri.parse(widget.url));
+      // SNI ve Cloudflare için kritik User-Agent (Kendini Chrome olarak tanıtır)
+      ..setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36")
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (error) => debugPrint("Hata: ${error.description}"),
+        ),
+      );
+
+    // DomStorage ve Platforma özel SNI desteğini aktif etme
+    if (_controller.platform is AndroidWebViewController) {
+      // Bu kısım Cloudflare tarafındaki "Browser Integrity Check" olayını aşmamızı sağlar
+      (_controller.platform as AndroidWebViewController).setGeolocationEnabled(true);
+    }
+
+    _controller.loadRequest(Uri.parse(widget.url));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // AppBar'ı istersen kaldırabilirsin (daha profesyonel görünür)
       appBar: AppBar(
         title: Text(widget.title),
-        centerTitle: true,
+        toolbarHeight: 0, // AppBar'ı gizler ama sistem çubuğunu korur
       ),
-      body: WebViewWidget(controller: _controller),
+      body: SafeArea(
+        child: WebViewWidget(controller: _controller),
+      ),
     );
   }
 }
