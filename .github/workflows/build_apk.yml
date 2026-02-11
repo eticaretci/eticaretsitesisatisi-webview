@@ -6,15 +6,18 @@ on:
       app_name:
         description: 'Uygulama Adı'
         required: true
-        default: 'EticaretSitesi'
+        default: 'Eticaret Sitesi'
       base_url:
         description: 'Web Sitesi URL'
         required: true
-        default: 'https://www.google.com'
+        default: 'https://www.eticaretsitesisatisi.com'
       logo_url:
         description: 'Logo Linki'
         required: true
         default: 'https://www.eticaretsitesisatisi.com/logo.png'
+      callback_url:
+        description: 'Webhook URL for EticaretSitesiSatisi'
+        required: true
 
 jobs:
   build:
@@ -133,7 +136,7 @@ jobs:
             void initState() {
               super.initState();
               _requestPerms();
-              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://google.com');
+              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
                 ..setNavigationDelegate(
