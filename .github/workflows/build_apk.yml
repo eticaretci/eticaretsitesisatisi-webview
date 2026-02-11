@@ -15,7 +15,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,12 +32,13 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Create Project and Fix Manifest
+      - name: Create Project and Configuration
         run: |
+          # 1. Mevcut her şeyi sil ve projeyi sıfırdan kur
           rm -rf .[0-9a-zA-Z]* *
-          flutter create . --platforms android --android-language java --org com.eticaret --project-name webview_app --overwrite
+          flutter create . --platforms android,ios --org com.eticaret --project-name webview_app --overwrite
 
-          # 1. Network Security Config oluşturma (SSL ve Sertifika sorunlarını baypas eder)
+          # 2. Android Güvenlik ve İzin Ayarları
           mkdir -p android/app/src/main/res/xml
           cat <<EOF > android/app/src/main/res/xml/network_security_config.xml
           <?xml version="1.0" encoding="utf-8"?>
@@ -50,11 +52,37 @@ jobs:
           </network-security-config>
           EOF
 
-          # 2. Manifest Güncelleme (Config'i bağlama ve İzinler)
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
-          sed -i 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+          sed -i '' '/<manifest/a \
+          <uses-permission android:name="android.permission.INTERNET"/>\
+          <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\
+          <uses-permission android:name="android.permission.CAMERA"/>\
+          <uses-permission android:name="android.permission.RECORD_AUDIO"/>\
+          <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
+          
+          sed -i '' 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
-          # 3. pubspec.yaml
+          # 3. iOS Çoklu Dil ve İzin Ayarları
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:2 string az" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:3 string ru" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:4 string de" ios/Runner/Info.plist
+
+          # Dil bazlı izin açıklamaları oluşturma
+          declare -A cam_desc=( ["tr"]="Kamera izni gereklidir." ["en"]="Camera permission required." ["az"]="Kamera icazəsi tələb olunur." ["ru"]="Требуется разрешение на камеру." ["de"]="Kamerazugriff benötigt." )
+          declare -A mic_desc=( ["tr"]="Mikrofon izni gereklidir." ["en"]="Microphone permission required." ["az"]="Mikrofon icazəsi tələb olunur." ["ru"]="Требуется разрешение на микрофон." ["de"]="Mikrofonzugriff benötigt." )
+          
+          for lang in tr en az ru de; do
+            mkdir -p "ios/Runner/$lang.lproj"
+            echo "NSCameraUsageDescription = \"${cam_desc[$lang]}\";" > "ios/Runner/$lang.lproj/InfoPlist.strings"
+            echo "NSMicrophoneUsageDescription = \"${mic_desc[$lang]}\";" >> "ios/Runner/$lang.lproj/InfoPlist.strings"
+            echo "NSPhotoLibraryUsageDescription = \"Gallery access\";" >> "ios/Runner/$lang.lproj/InfoPlist.strings"
+          done
+
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" ios/Runner/Info.plist
+
+          # 4. pubspec.yaml (Bağımlılıklar ve Logo Ayarı)
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -65,6 +93,7 @@ jobs:
               sdk: flutter
             webview_flutter: ^4.9.0
             webview_flutter_android: ^3.15.0
+            webview_flutter_wkwebview: ^3.15.0
             url_launcher: ^6.2.5
             permission_handler: ^11.3.1
           dev_dependencies:
@@ -73,6 +102,8 @@ jobs:
             flutter_launcher_icons: ^0.13.1
           flutter_launcher_icons:
             android: true
+            ios: true
+            remove_alpha_ios: true
             image_path: "assets/logo.png"
           flutter:
             uses-material-design: true
@@ -80,12 +111,11 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 4. lib/main.dart (Full Optimize Edilmiş Kod)
+          # 5. lib/main.dart (Dinamik Webview Kodu)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
-          import 'package:webview_flutter_android/webview_flutter_android.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
 
@@ -108,50 +138,31 @@ jobs:
             void initState() {
               super.initState();
               _requestPerms();
-              
-              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.google.com');
+              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://google.com');
               final String finalUrl = rawUrl.trim().startsWith('http') ? rawUrl.trim() : 'https://${rawUrl.trim()}';
 
-              late final PlatformWebViewControllerCreationParams params;
-              if (WebViewPlatform.instance is AndroidWebViewPlatform) {
-                params = AndroidWebViewControllerCreationParams();
-              } else {
-                params = const PlatformWebViewControllerCreationParams();
-              }
-
-              _controller = WebViewController.fromPlatformCreationParams(params)
+              _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                ..setBackgroundColor(Colors.white)
-                ..setUserAgent("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36")
+                ..setBackgroundColor(const Color(0x00000000))
                 ..setNavigationDelegate(
                   NavigationDelegate(
                     onProgress: (p) => setState(() => _loadingProgress = p),
-                    onWebResourceError: (error) => debugPrint("WebView Hatası: ${error.description}"),
                     onNavigationRequest: (request) async {
-                      final url = request.url;
-                      if (!url.startsWith('http')) {
-                        if (await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                      if (!request.url.startsWith('http')) {
+                        if (await canLaunchUrl(Uri.parse(request.url))) {
+                          await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
                         }
                         return NavigationDecision.prevent;
                       }
                       return NavigationDecision.navigate;
                     },
                   ),
-                );
-
-              // Android'e özel SSL ve DomStorage Ayarları
-              if (_controller.platform is AndroidWebViewController) {
-                final androidController = _controller.platform as AndroidWebViewController;
-                // ignore: deprecated_member_use
-                AndroidWebViewController.enableDebugging(true);
-              }
-
-              _controller.loadRequest(Uri.parse(finalUrl));
+                )
+                ..loadRequest(Uri.parse(finalUrl));
             }
 
             Future<void> _requestPerms() async {
-              await [Permission.camera, Permission.microphone, Permission.notification].request();
+              await [Permission.camera, Permission.microphone, Permission.photos, Permission.notification].request();
             }
 
             @override
@@ -163,11 +174,7 @@ jobs:
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(
-                          value: _loadingProgress / 100.0, 
-                          color: Colors.blue,
-                          backgroundColor: Colors.white,
-                        ),
+                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.blue),
                     ],
                   ),
                 ),
@@ -176,22 +183,29 @@ jobs:
           }
           EOF
 
-      - name: Process Assets
+      - name: Process Assets & Icons
         run: |
           mkdir -p assets
           curl -fsSL -o assets/logo.png "${{ github.event.inputs.logo_url }}"
           flutter pub get
           flutter pub run flutter_launcher_icons
 
-      - name: Build APK
+      - name: Build Android APK
         run: |
           flutter build apk --release \
-            --no-tree-shake-icons \
             --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
             --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
 
-      - name: Upload APK
+      - name: Build iOS (No Codesign)
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=BASE_URL="${{ github.event.inputs.base_url }}" \
+            --dart-define=APP_NAME="${{ github.event.inputs.app_name }}"
+
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ github.event.inputs.app_name }}-apk"
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: "${{ github.event.inputs.app_name }}-builds"
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/ios/iphoneos/Runner.app
