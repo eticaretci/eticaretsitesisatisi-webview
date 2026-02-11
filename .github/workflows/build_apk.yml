@@ -6,12 +6,15 @@ on:
       app_name:
         description: 'Uygulama Adı'
         required: true
+        default: 'EticaretSitesi'
       base_url:
-        description: 'Web Sitesi URL'
+        description: 'Web Sitesi URL (Örn: https://www.google.com)'
         required: true
+        default: 'https://www.google.com'
       logo_url:
         description: 'Logo Linki'
         required: true
+        default: 'https://www.eticaretsitesisatisi.com/logo.png'
 
 jobs:
   build:
@@ -51,7 +54,9 @@ jobs:
           </network-security-config>
           EOF
 
-          # Android Manifest Düzenleme
+          # 3. Android Manifest ve Dinamik İsim Ayarları
+          sed -i '' "s/android:label=\"webview_app\"/android:label=\"${{ github.event.inputs.app_name }}\"/" android/app/src/main/AndroidManifest.xml
+          
           sed -i '' '/<manifest/a \
           <uses-permission android:name="android.permission.INTERNET"/>\
           <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>\
@@ -61,7 +66,9 @@ jobs:
           
           sed -i '' 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
-          # 3. iOS Çoklu Dil ve İzin Ayarları (TR, EN, AZ, RU, DE)
+          # 4. iOS Çoklu Dil, İzinler ve Dinamik İsim Ayarları
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
@@ -76,7 +83,7 @@ jobs:
             echo "NSPhotoLibraryUsageDescription = \"Gallery access\";" >> "ios/Runner/$lang.lproj/InfoPlist.strings"
           done
 
-          # 4. ExportOptions.plist (IPA Çıktısı İçin Gerekli)
+          # 5. ExportOptions.plist (IPA Çıktısı İçin)
           cat <<EOF > ios/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -90,7 +97,7 @@ jobs:
           </plist>
           EOF
 
-          # 5. pubspec.yaml
+          # 6. pubspec.yaml (Bağımlılıklar)
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -119,7 +126,7 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 6. lib/main.dart
+          # 7. lib/main.dart (WebView Kodu)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           import 'package:flutter/material.dart';
@@ -206,7 +213,6 @@ jobs:
           P12_PASS: ${{ secrets.IOS_P12_PASSWORD }}
           PROV_PROFILE: ${{ secrets.IOS_PROVISION_PROFILE }}
         run: |
-          # Eğer secretlar tanımlıysa imzalama işlemini yapar
           if [ ! -z "$P12_CERT" ]; then
             echo "$P12_CERT" | base64 --decode > cert.p12
             echo "$PROV_PROFILE" | base64 --decode > profile.mobileprovision
