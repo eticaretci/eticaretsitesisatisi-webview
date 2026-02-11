@@ -18,6 +18,9 @@ on:
       callback_url:
         description: 'Webhook URL for EticaretSitesiSatisi'
         required: true
+      user_email:
+        description: 'Bildirim E-posta'
+        required: true
 
 jobs:
   build:
@@ -208,3 +211,17 @@ jobs:
           curl -X POST -H "Content-Type: application/json" \
           -d "{\"download_url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
           "${{ github.event.inputs.callback_url }}"
+
+      - name: Send Mail Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: mail.eticaretsitesisatisi.com  # Sitenin SMTP adresi (genelde mail. ile başlar)
+          server_port: 465 # SSL için 465, TLS için 587 deneyebilirsin
+          username: ${{ secrets.MAIL_USERNAME }} # info@firma.com
+          password: ${{ secrets.MAIL_PASSWORD }} # Mail şifren
+          subject: "${{ github.event.inputs.app_name }}"
+          to: ${{ github.event.inputs.user_email }}
+          from: "Eticaret Sitesi Satisi"
+          body: |
+            Link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
