@@ -142,6 +142,7 @@ jobs:
               const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                ..setSupportMultipleWindows(true) // Ödeme sayfaları ve Pop-up'lar için kritik ekleme
                 ..setNavigationDelegate(
                   NavigationDelegate(
                     onProgress: (p) => setState(() => _loadingProgress = p),
