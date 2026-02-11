@@ -201,3 +201,10 @@ jobs:
           path: |
             build/app/outputs/flutter-apk/app-release.apk
             build/ios/iphoneos/Runner.app
+
+      - name: Notify EticaretSitesiSatisi
+        if: always() # Build başarısız olsa bile haber ver ki panelde takılı kalmasın
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{\"download_url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+          "${{ github.event.inputs.callback_url }}"
