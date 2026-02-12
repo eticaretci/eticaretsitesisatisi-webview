@@ -87,8 +87,8 @@ jobs:
           dependencies:
             flutter:
               sdk: flutter
-            flutter_inappwebview: ^6.0.0
-            url_launcher: ^6.2.5
+            flutter_inappwebview: ^6.1.5
+            url_launcher: ^6.3.1
             permission_handler: ^11.3.1
           dev_dependencies:
             flutter_test:
@@ -109,25 +109,24 @@ jobs:
           cat <<'EOF' > lib/main.dart
           
           import 'package:flutter/material.dart';
-          import 'package:webview_flutter/webview_flutter.dart';
           import 'package:flutter_inappwebview/flutter_inappwebview.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
-          import 'dart:io';
-          
-          class MyHttpOverrides extends HttpOverrides {
+          import 'dart:io' as dart_io;
+
+          class MyHttpOverrides extends dart_io.HttpOverrides {
             @override
-            HttpClient createHttpClient(SecurityContext? context) {
+            dart_io.HttpClient createHttpClient(dart_io.SecurityContext? context) {
               return super.createHttpClient(context)
-                ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+                ..badCertificateCallback = (dart_io.X509Certificate cert, String host, int port) => true;
             }
           }
 
           void main() async {
-            HttpOverrides.global = MyHttpOverrides();
+            dart_io.HttpOverrides.global = MyHttpOverrides();
             WidgetsFlutterBinding.ensureInitialized();
             
-            if (Platform.isAndroid) {
+            if (dart_io.Platform.isAndroid) {
               await InAppWebViewController.setWebContentsDebuggingEnabled(true);
             }
 
@@ -145,7 +144,6 @@ jobs:
                     
           class _WebViewPageState extends State<WebViewPage> {
             final GlobalKey webViewKey = GlobalKey();
-            InAppWebViewController? webViewController;
             double progress = 0;
 
             @override
@@ -155,7 +153,7 @@ jobs:
             }
 
             Future<void> _requestPermissions() async {
-              await [Permission.camera, Permission.microphone, Permission.storage].request();
+              await [Permission.camera, Permission.microphone].request();
             }
             
             @override
@@ -171,25 +169,14 @@ jobs:
                         initialUrlRequest: URLRequest(url: WebUri(rawUrl.trim())),
                         initialSettings: InAppWebViewSettings(
                           javaScriptEnabled: true,
-                          useShouldOverrideUrlLoading: true,
-                          isInspectable: true,
                           mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                          allowsUntrustedSSLCertificates: true,
                           userAgent: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
                           domStorageEnabled: true,
-                          databaseEnabled: true,
                           useWideViewPort: true,
                           loadWithOverviewMode: true,
+                          allowFileAccessFromFileURLs: true,
+                          allowUniversalAccessFromFileURLs: true,
                         ),
-                        onWebViewCreated: (controller) {
-                          webViewController = controller;
-                        },
-                        onLoadStart: (controller, url) {
-                          setState(() { progress = 0; });
-                        },
-                        onLoadStop: (controller, url) {
-                          setState(() { progress = 1.0; });
-                        },
                         onProgressChanged: (controller, p) {
                           setState(() { progress = p / 100; });
                         },
@@ -198,7 +185,7 @@ jobs:
                         },
                         shouldOverrideUrlLoading: (controller, navigationAction) async {
                           var uri = navigationAction.request.url!;
-                          if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
+                          if (!["http", "https"].contains(uri.scheme)) {
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
                               return NavigationActionPolicy.CANCEL;
@@ -209,7 +196,7 @@ jobs:
                       ),
                       progress < 1.0
                           ? LinearProgressIndicator(value: progress, color: Colors.blue)
-                          : Container(),
+                          : const SizedBox.shrink(),
                     ],
                   ),
                 ),
