@@ -16,7 +16,7 @@ on:
         required: true
         default: 'https://www.eticaretsitesisatisi.com/logo.png'
       callback_url:
-        description: 'Webhook URL for EticaretSitesiSatisi'
+        description: 'Webhook URL'
         required: true
       user_email:
         description: 'Bildirim E-posta'
@@ -142,7 +142,7 @@ jobs:
               const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                ..setSupportMultipleWindows(true) // Ödeme sayfaları ve Pop-up'lar için kritik ekleme
+                ..setSupportMultipleWindows(true)
                 ..setNavigationDelegate(
                   NavigationDelegate(
                     onProgress: (p) => setState(() => _loadingProgress = p),
@@ -206,23 +206,36 @@ jobs:
             build/app/outputs/flutter-apk/app-release.apk
             build/ios/iphoneos/Runner.app
 
-      - name: Notify EticaretSitesiSatisi
-        if: always() # Build başarısız olsa bile haber ver ki panelde takılı kalmasın
-        run: |
-          curl -X POST -H "Content-Type: application/json" \
-          -d "{\"download_url\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
-          "${{ github.event.inputs.callback_url }}"
+      - name: Upload to Server via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: build/app/outputs/flutter-apk/
+          server-dir: public_html/apps/${{ github.event.inputs.app_name }}/
 
       - name: Send Mail Notification
         if: always()
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: mail.eticaretsitesisatisi.com  # Sitenin SMTP adresi (genelde mail. ile başlar)
-          server_port: 465 # SSL için 465, TLS için 587 deneyebilirsin
-          username: ${{ secrets.MAIL_USERNAME }} # info@firma.com
-          password: ${{ secrets.MAIL_PASSWORD }} # Mail şifren
-          subject: "${{ github.event.inputs.app_name }}"
-          to: ${{ github.event.inputs.user_email }}
-          from: "Eticaret Sitesi Satisi"
+          server_address: mail.eticaretsitesisatisi.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "&#10003; Uygulamanız Hazır: ${{ github.event.inputs.app_name }}"
+          to: ${{ secrets.MAIL_USERNAME }}
+          from: "Uygulama <${{ secrets.MAIL_USERNAME }}>"
           body: |
-            Link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            Merhaba,
+            
+            ${{ github.event.inputs.app_name }} uygulaması hazırlandı ve sunucuya yüklendi.
+            
+            Link: https://www.eticaretsitesisatisi.com/apps/${{ github.event.inputs.app_name }}/app-release.apk
+
+      - name: Notify Webhook (Panel Update)
+        if: always()
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{\"download_url\": \"https://www.eticaretsitesisatisi.com/apps/${{ github.event.inputs.app_name }}/app-release.apk\"}" \
+          "${{ github.event.inputs.callback_url }}"
