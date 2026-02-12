@@ -224,6 +224,10 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: build/app/outputs/flutter-apk/
           server-dir: "public_html/apps/${{ steps.clean_id.outputs.name }}/"
+          protocol: ftp
+          port: 21
+          timeout: 120000
+          security: loose
 
       - name: Send Mail Notification
         if: always()
