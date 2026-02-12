@@ -92,7 +92,7 @@ jobs:
             webview_flutter_wkwebview: ^3.15.0
             url_launcher: ^6.2.5
             permission_handler: ^11.3.1
-            google_api_availability: ^5.1.0
+            google_api_availability: any
           dev_dependencies:
             flutter_test:
               sdk: flutter
