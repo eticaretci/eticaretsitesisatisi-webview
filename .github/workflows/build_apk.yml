@@ -153,7 +153,7 @@ jobs:
             }
 
             Future<void> _requestPermissions() async {
-              await [Permission.camera, Permission.microphone].request();
+              await [Permission.camera, Permission.microphone, Permission.storage].request();
             }
             
             @override
@@ -167,6 +167,7 @@ jobs:
                       InAppWebView(
                         key: webViewKey,
                         initialUrlRequest: URLRequest(url: WebUri(rawUrl.trim())),
+                        
                         initialSettings: InAppWebViewSettings(
                           javaScriptEnabled: true,
                           mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
@@ -174,9 +175,22 @@ jobs:
                           domStorageEnabled: true,
                           useWideViewPort: true,
                           loadWithOverviewMode: true,
+                          allowsInlineMediaPlayback: true,
+                          mediaPlaybackRequiresUserGesture: false,
+                          allowsFullscreenVideo: true,
                           allowFileAccessFromFileURLs: true,
                           allowUniversalAccessFromFileURLs: true,
+                          hardwareAcceleration: true,
+                          allowContentAccess: true,
+                          javaScriptCanOpenWindowsAutomatically: true,
+                          supportMultipleWindows: false,
                         ),
+                        onPermissionRequest: (controller, request) async {
+                          return PermissionResponse(
+                            resources: request.resources,
+                            action: PermissionResponseAction.GRANT,
+                          );
+                        },
                         onProgressChanged: (controller, p) {
                           setState(() { progress = p / 100; });
                         },
@@ -195,7 +209,7 @@ jobs:
                         },
                       ),
                       progress < 1.0
-                          ? LinearProgressIndicator(value: progress, color: Colors.blue)
+                          ? LinearProgressIndicator(value: progress, color: Colors.black)
                           : const SizedBox.shrink(),
                     ],
                   ),
