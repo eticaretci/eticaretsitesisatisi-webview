@@ -145,7 +145,10 @@ jobs:
           class _WebViewPageState extends State<WebViewPage> {
             final GlobalKey webViewKey = GlobalKey();
             double progress = 0;
-
+            
+            final String dynamicBaseUrl = const String.fromEnvironment('BASE_URL', 
+                defaultValue: 'https://www.eticaretsitesisatisi.com').trim();
+                
             @override
             void initState() {
               super.initState();
@@ -158,21 +161,19 @@ jobs:
             
             @override
             Widget build(BuildContext context) {
-              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-
               return Scaffold(
                 body: SafeArea(
                   child: Stack(
                     children: [
                       InAppWebView(
                         key: webViewKey,
-                        initialUrlRequest: URLRequest(url: WebUri(rawUrl.trim())),
-
+                        initialUrlRequest: URLRequest(url: WebUri(dynamicBaseUrl)),
                         initialSettings: InAppWebViewSettings(
                           javaScriptEnabled: true,
                           mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
                           userAgent: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
                           domStorageEnabled: true,
+                          databaseEnabled: true,
                           useWideViewPort: true,
                           loadWithOverviewMode: true,
                           allowsInlineMediaPlayback: true,
@@ -184,31 +185,44 @@ jobs:
                           safeBrowsingEnabled: false,
                           supportMultipleWindows: false,
                         ),
+                        
                         onPermissionRequest: (controller, request) async {
                           return PermissionResponse(
                             resources: request.resources,
                             action: PermissionResponseAction.GRANT,
                           );
                         },
-                        onProgressChanged: (controller, p) {
-                          setState(() { progress = p / 100; });
-                        },
-                        onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                          return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                        },
+                        
                         shouldOverrideUrlLoading: (controller, navigationAction) async {
                           var uri = navigationAction.request.url!;
+                          var urlString = uri.toString();
                           if (!["http", "https"].contains(uri.scheme)) {
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
                               return NavigationActionPolicy.CANCEL;
                             }
                           }
+                          if (urlString.startsWith("/") && !urlString.startsWith("//")) {
+                            String cleanBase = dynamicBaseUrl.endsWith("/") 
+                                ? dynamicBaseUrl.substring(0, dynamicBaseUrl.length - 1) 
+                                : dynamicBaseUrl;
+                  
+                            controller.loadUrl(urlRequest: URLRequest(url: WebUri(cleanBase + urlString)));
+                            return NavigationActionPolicy.CANCEL;
+                          }
                           return NavigationActionPolicy.ALLOW;
+                        },
+              
+                        onProgressChanged: (controller, p) {
+                          setState(() { progress = p / 100; });
+                        },
+                        
+                        onReceivedServerTrustAuthRequest: (controller, challenge) async {
+                          return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
                         },
                       ),
                       progress < 1.0
-                          ? LinearProgressIndicator(value: progress, color: Colors.black)
+                          ? LinearProgressIndicator(value: progress, color: Colors.black, backgroundColor: Colors.white)
                           : const SizedBox.shrink(),
                     ],
                   ),
