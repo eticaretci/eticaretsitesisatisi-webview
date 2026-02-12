@@ -44,15 +44,12 @@ jobs:
       - name: Create Project and Configuration
         id: clean_id
         run: |
-          # 1. Paket ismini URL veya isimden temizleyerek türet (Örn: eticaretsitesi)
           CLEAN_NAME=$(echo "${{ github.event.inputs.app_name }}" | tr -d ' ' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')
           echo "name=$CLEAN_NAME" >> $GITHUB_OUTPUT
           
-          # 2. Mevcut her şeyi temizle ve projeyi dinamik paket ismiyle oluştur
           rm -rf .[0-9a-zA-Z]* *
           flutter create . --platforms android,ios --org com.myapp --project-name webview_app --overwrite
 
-          # 3. Android Güvenlik Ayarları
           mkdir -p android/app/src/main/res/xml
           cat <<EOF > android/app/src/main/res/xml/network_security_config.xml
           <?xml version="1.0" encoding="utf-8"?>
@@ -65,7 +62,6 @@ jobs:
           </network-security-config>
           EOF
 
-          # 4. Android Manifest ve İsim Güncelleme
           sed -i '' "s/android:label=\"webview_app\"/android:label=\"${{ github.event.inputs.app_name }}\"/" android/app/src/main/AndroidManifest.xml
           
           sed -i '' '/<manifest/a \
@@ -75,16 +71,14 @@ jobs:
           <uses-permission android:name="android.permission.RECORD_AUDIO"/>\
           <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
           
-          sed -i '' 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+          sed -i '' 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' android/app/src/main/AndroidManifest.xml
 
-          # 5. iOS Dinamik İsim ve İzinler
           /usr/libexec/PlistBuddy -c "Set :CFBundleName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
 
-          # 6. pubspec.yaml hazırlığı
           cat <<EOF > pubspec.yaml
           name: webview_app
           version: 1.0.0+1
@@ -98,6 +92,7 @@ jobs:
             webview_flutter_wkwebview: ^3.15.0
             url_launcher: ^6.2.5
             permission_handler: ^11.3.1
+            google_api_availability: ^5.1.0
           dev_dependencies:
             flutter_test:
               sdk: flutter
@@ -113,7 +108,6 @@ jobs:
               - assets/logo.png
           EOF
 
-          # 7. lib/main.dart (Sabit WebView Kodu)
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
           
@@ -123,9 +117,17 @@ jobs:
           import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
-          
-          void main() {
+          import 'package:google_api_availability/google_api_availability.dart';
+          import 'dart:io';
+
+          void main() async {
             WidgetsFlutterBinding.ensureInitialized();
+            if (Platform.isAndroid) {
+              try {
+                await GoogleApiAvailability.instance.makeGooglePlayServicesAvailable();
+              } catch (e) {
+              }
+            }
             runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: WebViewPage()));
           }
 
@@ -147,11 +149,12 @@ jobs:
               
               _controller = WebViewController()
                 ..setJavaScriptMode(JavaScriptMode.unrestricted)
+                ..setBackgroundColor(Colors.white)
+                ..setUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36")
                 ..setNavigationDelegate(
                   NavigationDelegate(
                     onProgress: (p) => setState(() => _loadingProgress = p),
                     onNavigationRequest: (request) async {
-                      // WhatsApp, Tel vb. linkleri dışarı at
                       if (!request.url.startsWith('http')) {
                         if (await canLaunchUrl(Uri.parse(request.url))) {
                           await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
@@ -164,10 +167,7 @@ jobs:
                 )
                 ..loadRequest(Uri.parse(rawUrl.trim()));
                 
-                if (_controller.platform is AndroidWebViewController) {
-                (_controller.platform as AndroidWebViewController).setPlatformNavigationDelegate(
-                  AndroidNavigationDelegate(const PlatformNavigationDelegateCreationParams()), 
-                );
+              if (_controller.platform is AndroidWebViewController) {
                 (_controller.platform as AndroidWebViewController).setOnPlatformPermissionRequest((request) => request.grant());
               }
             }
@@ -184,7 +184,7 @@ jobs:
                     children: [
                       WebViewWidget(controller: _controller),
                       if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0),
+                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.black),
                     ],
                   ),
                 ),
