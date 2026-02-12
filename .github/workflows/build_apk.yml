@@ -167,7 +167,7 @@ jobs:
                       InAppWebView(
                         key: webViewKey,
                         initialUrlRequest: URLRequest(url: WebUri(rawUrl.trim())),
-                        
+
                         initialSettings: InAppWebViewSettings(
                           javaScriptEnabled: true,
                           mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
@@ -177,11 +177,14 @@ jobs:
                           loadWithOverviewMode: true,
                           allowsInlineMediaPlayback: true,
                           mediaPlaybackRequiresUserGesture: false,
+                          allowsFullscreenVideo: true,
                           allowFileAccessFromFileURLs: true,
                           allowUniversalAccessFromFileURLs: true,
                           hardwareAcceleration: true,
                           allowContentAccess: true,
                           javaScriptCanOpenWindowsAutomatically: true,
+                          hardwareAcceleration: true,
+                          safeBrowsingEnabled: false,
                           supportMultipleWindows: false,
                         ),
                         onPermissionRequest: (controller, request) async {
