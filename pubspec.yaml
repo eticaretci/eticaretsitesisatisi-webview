@@ -7,7 +7,6 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  google_api_availability: ^5.1.0
   flutter:
     sdk: flutter
   webview_flutter: ^4.7.0
@@ -34,4 +33,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+
 
