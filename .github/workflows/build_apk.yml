@@ -238,7 +238,6 @@ jobs:
           to: ${{ github.event.inputs.user_email }}
           from: "EticaretSitesiSatisi.Com"
           body: |   
-                   
             ${{ github.event.inputs.app_name }}
             
             Url : https://www.eticaretsitesisatisi.com/apps/${{ steps.clean_id.outputs.name }}/app-release.apk
