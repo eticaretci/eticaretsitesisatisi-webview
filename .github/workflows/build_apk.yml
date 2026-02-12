@@ -87,12 +87,9 @@ jobs:
           dependencies:
             flutter:
               sdk: flutter
-            webview_flutter: ^4.9.0
-            webview_flutter_android: ^3.15.0
-            webview_flutter_wkwebview: ^3.15.0
+            flutter_inappwebview: ^6.0.0
             url_launcher: ^6.2.5
             permission_handler: ^11.3.1
-            google_api_availability: any
           dev_dependencies:
             flutter_test:
               sdk: flutter
@@ -113,11 +110,9 @@ jobs:
           
           import 'package:flutter/material.dart';
           import 'package:webview_flutter/webview_flutter.dart';
-          import 'package:webview_flutter_android/webview_flutter_android.dart';
-          import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+          import 'package:flutter_inappwebview/flutter_inappwebview.dart';
           import 'package:url_launcher/url_launcher.dart';
           import 'package:permission_handler/permission_handler.dart';
-          import 'package:google_api_availability/google_api_availability.dart';
           import 'dart:io';
           
           class MyHttpOverrides extends HttpOverrides {
@@ -131,13 +126,15 @@ jobs:
           void main() async {
             HttpOverrides.global = MyHttpOverrides();
             WidgetsFlutterBinding.ensureInitialized();
+            
             if (Platform.isAndroid) {
-              try {
-                await GoogleApiAvailability.instance.makeGooglePlayServicesAvailable();
-              } catch (e) {
-              }
+              await InAppWebViewController.setWebContentsDebuggingEnabled(true);
             }
-            runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: WebViewPage()));
+
+            runApp(const MaterialApp(
+              debugShowCheckedModeBanner: false, 
+              home: WebViewPage()
+            ));
           }
 
           class WebViewPage extends StatefulWidget {
@@ -147,56 +144,72 @@ jobs:
           }
                     
           class _WebViewPageState extends State<WebViewPage> {
-            late final WebViewController _controller;
-            int _loadingProgress = 0;
+            final GlobalKey webViewKey = GlobalKey();
+            InAppWebViewController? webViewController;
+            double progress = 0;
 
             @override
             void initState() {
               super.initState();
-              _requestPerms();
-              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
-              
-              _controller = WebViewController()
-                ..setJavaScriptMode(JavaScriptMode.unrestricted)
-                ..setBackgroundColor(Colors.white)
-                ..setUserAgent("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36")
-                ..setNavigationDelegate(
-                  NavigationDelegate(
-                    onProgress: (p) => setState(() => _loadingProgress = p),
-                    onNavigationRequest: (request) async {
-                      if (!request.url.startsWith('http')) {
-                        if (await canLaunchUrl(Uri.parse(request.url))) {
-                          await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
-                        }
-                        return NavigationDecision.prevent;
-                      }
-                      return NavigationDecision.navigate;
-                    },
-                    onWebResourceError: (error) {
-                      debugPrint("${error.description}");
-                    },
-                  ),
-                )
-                ..loadRequest(Uri.parse(rawUrl.trim()));
-                
-              if (_controller.platform is AndroidWebViewController) {
-                (_controller.platform as AndroidWebViewController).setOnPlatformPermissionRequest((request) => request.grant());
-              }
+              _requestPermissions();
             }
 
-            Future<void> _requestPerms() async {
-              await [Permission.camera, Permission.microphone, Permission.photos].request();
+            Future<void> _requestPermissions() async {
+              await [Permission.camera, Permission.microphone, Permission.storage].request();
             }
-
+            
             @override
             Widget build(BuildContext context) {
+              const String rawUrl = String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com');
+
               return Scaffold(
                 body: SafeArea(
                   child: Stack(
                     children: [
-                      WebViewWidget(controller: _controller),
-                      if (_loadingProgress < 100)
-                        LinearProgressIndicator(value: _loadingProgress / 100.0, color: Colors.black),
+                      InAppWebView(
+                        key: webViewKey,
+                        initialUrlRequest: URLRequest(url: WebUri(rawUrl.trim())),
+                        initialSettings: InAppWebViewSettings(
+                          javaScriptEnabled: true,
+                          useShouldOverrideUrlLoading: true,
+                          isInspectable: true,
+                          mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                          allowsUntrustedSSLCertificates: true,
+                          userAgent: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
+                          domStorageEnabled: true,
+                          databaseEnabled: true,
+                          useWideViewPort: true,
+                          loadWithOverviewMode: true,
+                        ),
+                        onWebViewCreated: (controller) {
+                          webViewController = controller;
+                        },
+                        onLoadStart: (controller, url) {
+                          setState(() { progress = 0; });
+                        },
+                        onLoadStop: (controller, url) {
+                          setState(() { progress = 1.0; });
+                        },
+                        onProgressChanged: (controller, p) {
+                          setState(() { progress = p / 100; });
+                        },
+                        onReceivedServerTrustAuthRequest: (controller, challenge) async {
+                          return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
+                        },
+                        shouldOverrideUrlLoading: (controller, navigationAction) async {
+                          var uri = navigationAction.request.url!;
+                          if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              return NavigationActionPolicy.CANCEL;
+                            }
+                          }
+                          return NavigationActionPolicy.ALLOW;
+                        },
+                      ),
+                      progress < 1.0
+                          ? LinearProgressIndicator(value: progress, color: Colors.blue)
+                          : Container(),
                     ],
                   ),
                 ),
