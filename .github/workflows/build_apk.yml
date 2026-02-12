@@ -177,7 +177,6 @@ jobs:
                           loadWithOverviewMode: true,
                           allowsInlineMediaPlayback: true,
                           mediaPlaybackRequiresUserGesture: false,
-                          allowsFullscreenVideo: true,
                           allowFileAccessFromFileURLs: true,
                           allowUniversalAccessFromFileURLs: true,
                           hardwareAcceleration: true,
