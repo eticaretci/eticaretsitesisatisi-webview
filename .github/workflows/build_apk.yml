@@ -223,8 +223,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: build/app/outputs/flutter-apk/
-          server-dir: ${{ steps.clean_id.outputs.name }}/
-
+          server-dir: "public_html/apps/${{ steps.clean_id.outputs.name }}/"
 
       - name: Send Mail Notification
         if: always()
@@ -240,11 +239,11 @@ jobs:
           body: |   
             ${{ github.event.inputs.app_name }}
             
-            Url : https://www.eticaretsitesisatisi.com/apps/${{ steps.clean_id.outputs.name }}/app-release.apk
+            Url : https://www.eticaretsitesisatisi.com.tr/apps/${{ steps.clean_id.outputs.name }}/app-release.apk
             
       - name: Notify Webhook (Panel Update)
         if: always()
         run: |
           curl -X POST -H "Content-Type: application/json" \
-          -d "{\"download_url\": \"https://www.eticaretsitesisatisi.com/apps/${{ steps.clean_id.outputs.name }}/app-release.apk\"}" \
+          -d "{\"download_url\": \"https://www.eticaretsitesisatisi.com.tr/apps/${{ steps.clean_id.outputs.name }}/app-release.apk\"}" \
           "${{ github.event.inputs.callback_url }}"
