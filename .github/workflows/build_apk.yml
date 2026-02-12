@@ -119,8 +119,17 @@ jobs:
           import 'package:permission_handler/permission_handler.dart';
           import 'package:google_api_availability/google_api_availability.dart';
           import 'dart:io';
+          
+          class MyHttpOverrides extends HttpOverrides {
+            @override
+            HttpClient createHttpClient(SecurityContext? context) {
+              return super.createHttpClient(context)
+                ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+            }
+          }
 
           void main() async {
+            HttpOverrides.global = MyHttpOverrides();
             WidgetsFlutterBinding.ensureInitialized();
             if (Platform.isAndroid) {
               try {
@@ -162,6 +171,9 @@ jobs:
                         return NavigationDecision.prevent;
                       }
                       return NavigationDecision.navigate;
+                    },
+                    onWebResourceError: (error) {
+                      debugPrint("${error.description}");
                     },
                   ),
                 )
