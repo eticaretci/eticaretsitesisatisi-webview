@@ -144,6 +144,7 @@ jobs:
                     
           class _WebViewPageState extends State<WebViewPage> {
             final GlobalKey webViewKey = GlobalKey();
+            InAppWebViewController? webViewController;
             double progress = 0;
             
             final String dynamicBaseUrl = const String.fromEnvironment('BASE_URL', 
@@ -177,6 +178,7 @@ jobs:
                           useWideViewPort: true,
                           loadWithOverviewMode: true,
                           allowsInlineMediaPlayback: true,
+                          useShouldOverrideUrlLoading: true,
                           mediaPlaybackRequiresUserGesture: false,
                           allowFileAccessFromFileURLs: true,
                           allowUniversalAccessFromFileURLs: true,
@@ -186,13 +188,15 @@ jobs:
                           supportMultipleWindows: false,
                         ),
                         
+                        onWebViewCreated: (controller) => webViewController = controller,
+                        
                         onPermissionRequest: (controller, request) async {
                           return PermissionResponse(
                             resources: request.resources,
                             action: PermissionResponseAction.GRANT,
                           );
                         },
-                        
+                                                
                         shouldOverrideUrlLoading: (controller, navigationAction) async {
                           var uri = navigationAction.request.url!;
                           var urlString = uri.toString();
@@ -202,17 +206,23 @@ jobs:
                               return NavigationActionPolicy.CANCEL;
                             }
                           }
-                          if (urlString.startsWith("/") && !urlString.startsWith("//")) {
+                          
+                          if (urlString.contains(dynamicBaseUrl.replaceAll("https://", "").replaceAll("http://", ""))) {
+                            return NavigationActionPolicy.ALLOW;
+                          }
+                          
+                          if (urlString.startsWith("/")) {
                             String cleanBase = dynamicBaseUrl.endsWith("/") 
                                 ? dynamicBaseUrl.substring(0, dynamicBaseUrl.length - 1) 
                                 : dynamicBaseUrl;
-                  
+                            
                             controller.loadUrl(urlRequest: URLRequest(url: WebUri(cleanBase + urlString)));
                             return NavigationActionPolicy.CANCEL;
                           }
+
                           return NavigationActionPolicy.ALLOW;
                         },
-              
+
                         onProgressChanged: (controller, p) {
                           setState(() { progress = p / 100; });
                         },
