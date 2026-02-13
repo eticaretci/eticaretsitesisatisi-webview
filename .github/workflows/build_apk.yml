@@ -107,7 +107,8 @@ jobs:
 
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
-                    
+          
+          import 'package:flutter/services.dart';
           import 'package:flutter/material.dart';
           import 'package:flutter_inappwebview/flutter_inappwebview.dart';
           import 'package:url_launcher/url_launcher.dart';
@@ -129,13 +130,16 @@ jobs:
             if (dart_io.Platform.isAndroid) {
               await InAppWebViewController.setWebContentsDebuggingEnabled(true);
             }
-
+            await SystemChrome.setPreferredOrientations([
+                DeviceOrientation.portraitUp,
+                DeviceOrientation.portraitDown,
+            ]);
+            
             runApp(const MaterialApp(
               debugShowCheckedModeBanner: false, 
               home: WebViewPage()
             ));
           }
-
           class WebViewPage extends StatefulWidget {
             const WebViewPage({super.key});
             @override
