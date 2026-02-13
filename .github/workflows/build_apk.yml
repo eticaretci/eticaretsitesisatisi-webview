@@ -76,6 +76,12 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:0 string whatsapp" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:1 string facebook" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:2 string instagram" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:3 string tel" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:4 string mailto" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
 
@@ -211,28 +217,24 @@ jobs:
                         shouldOverrideUrlLoading: (controller, navigationAction) async {
                           var uri = navigationAction.request.url!;
                           var urlString = uri.toString();
-                          if (!["http", "https"].contains(uri.scheme)) {
+
+                          if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
                               return NavigationActionPolicy.CANCEL;
                             }
                           }
-                          
-                          if (urlString.contains(dynamicBaseUrl.replaceAll("https://", "").replaceAll("http://", ""))) {
-                            return NavigationActionPolicy.ALLOW;
-                          }
-                          
-                          if (urlString.startsWith("/")) {
-                            String cleanBase = dynamicBaseUrl.endsWith("/") 
-                                ? dynamicBaseUrl.substring(0, dynamicBaseUrl.length - 1) 
-                                : dynamicBaseUrl;
-                            
-                            controller.loadUrl(urlRequest: URLRequest(url: WebUri(cleanBase + urlString)));
-                            return NavigationActionPolicy.CANCEL;
+
+                          if (urlString.contains("whatsapp.com") || urlString.contains("facebook.com") || urlString.contains("t.me")) {
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              return NavigationActionPolicy.CANCEL;
+                            }
                           }
 
                           return NavigationActionPolicy.ALLOW;
                         },
+
 
                         onProgressChanged: (controller, p) {
                           setState(() { progress = p / 100; });
