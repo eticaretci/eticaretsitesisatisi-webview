@@ -8,7 +8,7 @@ on:
         required: true
         default: 'Eticaret Sitesi'
       base_url:
-        description: 'Web Sitesi Url'
+        description: 'Web Sitesi URL'
         required: true
         default: 'https://www.eticaretsitesisatisi.com'
       logo_url:
@@ -16,7 +16,7 @@ on:
         required: true
         default: 'https://www.eticaretsitesisatisi.com/logo.png'
       callback_url:
-        description: 'Webhook Url'
+        description: 'Webhook URL'
         required: true
       user_email:
         description: 'Bildirim E-posta'
@@ -76,12 +76,6 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes array" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:0 string whatsapp" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:1 string facebook" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:2 string instagram" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:3 string tel" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:4 string mailto" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
 
@@ -168,18 +162,7 @@ jobs:
             
             @override
             Widget build(BuildContext context) {
-            
-            return PopScope(
-              canPop: false,
-              onPopInvokedWithResult: (didPop, result) async {
-                if (didPop) return;
-                if (webViewController != null && await webViewController!.canGoBack()) {
-                   webViewController!.goBack();
-                } else {
-                   dart_io.exit(0);
-                }
-              },
-              child: Scaffold(
+              return Scaffold(
                 body: SafeArea(
                   child: Stack(
                     children: [
@@ -202,7 +185,7 @@ jobs:
                           allowContentAccess: true,
                           javaScriptCanOpenWindowsAutomatically: true,
                           safeBrowsingEnabled: false,
-                          supportMultipleWindows: true,
+                          supportMultipleWindows: false,
                         ),
                         
                         onWebViewCreated: (controller) => webViewController = controller,
@@ -217,24 +200,28 @@ jobs:
                         shouldOverrideUrlLoading: (controller, navigationAction) async {
                           var uri = navigationAction.request.url!;
                           var urlString = uri.toString();
-
-                          if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
+                          if (!["http", "https"].contains(uri.scheme)) {
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri, mode: LaunchMode.externalApplication);
                               return NavigationActionPolicy.CANCEL;
                             }
                           }
-
-                          if (urlString.contains("whatsapp.com") || urlString.contains("facebook.com") || urlString.contains("t.me")) {
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              return NavigationActionPolicy.CANCEL;
-                            }
+                          
+                          if (urlString.contains(dynamicBaseUrl.replaceAll("https://", "").replaceAll("http://", ""))) {
+                            return NavigationActionPolicy.ALLOW;
+                          }
+                          
+                          if (urlString.startsWith("/")) {
+                            String cleanBase = dynamicBaseUrl.endsWith("/") 
+                                ? dynamicBaseUrl.substring(0, dynamicBaseUrl.length - 1) 
+                                : dynamicBaseUrl;
+                            
+                            controller.loadUrl(urlRequest: URLRequest(url: WebUri(cleanBase + urlString)));
+                            return NavigationActionPolicy.CANCEL;
                           }
 
                           return NavigationActionPolicy.ALLOW;
                         },
-
 
                         onProgressChanged: (controller, p) {
                           setState(() { progress = p / 100; });
@@ -250,8 +237,7 @@ jobs:
                     ],
                   ),
                 ),
-              ),
-            );
+              );
             }
           }
           EOF
