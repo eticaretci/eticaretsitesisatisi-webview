@@ -108,7 +108,7 @@ jobs:
 
           mkdir -p lib
           cat <<'EOF' > lib/main.dart
-          
+
           import 'package:flutter/services.dart';
           import 'package:flutter/material.dart';
           import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -151,6 +151,7 @@ jobs:
             final GlobalKey webViewKey = GlobalKey();
             InAppWebViewController? webViewController;
             double progress = 0;
+            bool isPageLoaded = false;
             
             final String dynamicBaseUrl = const String.fromEnvironment('BASE_URL', 
                 defaultValue: 'https://www.eticaretsitesisatisi.com').trim();
@@ -178,6 +179,7 @@ jobs:
                   }
                 },
                 child: Scaffold(
+                  backgroundColor: Colors.white,
                   body: SafeArea(
                     child: Stack(
                       children: [
@@ -245,16 +247,31 @@ jobs:
                           },
 
                           onProgressChanged: (controller, p) {
-                            setState(() { progress = p / 100; });
+                            setState(() { 
+                              progress = p / 100;
+                              if (p >= 90) isPageLoaded = true;
+                            });
                           },
                           
                           onReceivedServerTrustAuthRequest: (controller, challenge) async {
                             return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
                           },
                         ),
+                        
                         progress < 1.0
                             ? LinearProgressIndicator(value: progress, color: Colors.black, backgroundColor: Colors.white)
                             : const SizedBox.shrink(),
+                            
+                        if (!isPageLoaded)
+                          Container(
+                            color: Colors.white,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFae2422)),
+                                strokeWidth: 3,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -263,7 +280,7 @@ jobs:
             }
           }
           EOF
-
+          
       - name: Process Assets & Icons
         run: |
           mkdir -p assets
