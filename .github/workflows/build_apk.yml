@@ -72,12 +72,15 @@ jobs:
           <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>' android/app/src/main/AndroidManifest.xml
           
           sed -i '' 's/<application/<application android:networkSecurityConfig="@xml\/network_security_config" android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' android/app/src/main/AndroidManifest.xml
-
+          
           /usr/libexec/PlistBuddy -c "Set :CFBundleName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName ${{ github.event.inputs.app_name }}" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations array" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:0 string tr" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :CFBundleLocalizations:1 string en" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes array" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:0 string whatsapp" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:1 string instagram" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:2 string fb" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:3 string tel" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSApplicationQueriesSchemes:4 string mailto" ios/Runner/Info.plist
 
           cat <<EOF > pubspec.yaml
           name: webview_app
@@ -114,24 +117,10 @@ jobs:
           import 'package:permission_handler/permission_handler.dart';
           import 'dart:io' as dart_io;
 
-          class MyHttpOverrides extends dart_io.HttpOverrides {
-            @override
-            dart_io.HttpClient createHttpClient(dart_io.SecurityContext? context) {
-              return super.createHttpClient(context)
-                ..badCertificateCallback = (dart_io.X509Certificate cert, String host, int port) => true;
-            }
-          }
-
           void main() async {
-            dart_io.HttpOverrides.global = MyHttpOverrides();
             WidgetsFlutterBinding.ensureInitialized();
-            
-            if (dart_io.Platform.isAndroid) {
-              await InAppWebViewController.setWebContentsDebuggingEnabled(true);
-            }
-
             runApp(const MaterialApp(
-              debugShowCheckedModeBanner: false, 
+              debugShowCheckedModeBanner: false,
               home: WebViewPage()
             ));
           }
@@ -141,15 +130,12 @@ jobs:
             @override
             State<WebViewPage> createState() => _WebViewPageState();
           }
-                    
+
           class _WebViewPageState extends State<WebViewPage> {
-            final GlobalKey webViewKey = GlobalKey();
             InAppWebViewController? webViewController;
             double progress = 0;
-            
-            final String dynamicBaseUrl = const String.fromEnvironment('BASE_URL', 
-                defaultValue: 'https://www.eticaretsitesisatisi.com').trim();
-                
+            final String dynamicBaseUrl = const String.fromEnvironment('BASE_URL', defaultValue: 'https://www.eticaretsitesisatisi.com').trim();
+
             @override
             void initState() {
               super.initState();
@@ -159,82 +145,64 @@ jobs:
             Future<void> _requestPermissions() async {
               await [Permission.camera, Permission.microphone, Permission.storage].request();
             }
-            
+
             @override
             Widget build(BuildContext context) {
-              return Scaffold(
-                body: SafeArea(
-                  child: Stack(
-                    children: [
-                      InAppWebView(
-                        key: webViewKey,
-                        initialUrlRequest: URLRequest(url: WebUri(dynamicBaseUrl)),
-                        initialSettings: InAppWebViewSettings(
-                          javaScriptEnabled: true,
-                          mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                          userAgent: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Mobile Safari/537.36",
-                          domStorageEnabled: true,
-                          databaseEnabled: true,
-                          useWideViewPort: true,
-                          loadWithOverviewMode: true,
-                          allowsInlineMediaPlayback: true,
-                          useShouldOverrideUrlLoading: true,
-                          mediaPlaybackRequiresUserGesture: false,
-                          allowFileAccessFromFileURLs: true,
-                          allowUniversalAccessFromFileURLs: true,
-                          allowContentAccess: true,
-                          javaScriptCanOpenWindowsAutomatically: true,
-                          safeBrowsingEnabled: false,
-                          supportMultipleWindows: false,
-                        ),
-                        
-                        onWebViewCreated: (controller) => webViewController = controller,
-                        
-                        onPermissionRequest: (controller, request) async {
-                          return PermissionResponse(
-                            resources: request.resources,
-                            action: PermissionResponseAction.GRANT,
-                          );
-                        },
-                                                
-                        shouldOverrideUrlLoading: (controller, navigationAction) async {
-                          var uri = navigationAction.request.url!;
-                          var urlString = uri.toString();
-                          if (!["http", "https"].contains(uri.scheme)) {
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri, mode: LaunchMode.externalApplication);
-                              return NavigationActionPolicy.CANCEL;
+              return PopScope(
+                canPop: false,
+                onPopInvokedWithResult: (didPop, result) async {
+                  if (didPop) return;
+                  if (webViewController != null && await webViewController!.canGoBack()) {
+                    webViewController!.goBack();
+                  } else {
+                    dart_io.exit(0);
+                  }
+                },
+                child: Scaffold(
+                  body: SafeArea(
+                    child: Stack(
+                      children: [
+                        InAppWebView(
+                          initialUrlRequest: URLRequest(
+                            url: WebUri(dynamicBaseUrl),
+                            headers: {'X-Requested-With': ''}
+                          ),
+                          initialSettings: InAppWebViewSettings(
+                            javaScriptEnabled: true,
+                            domStorageEnabled: true,
+                            useShouldOverrideUrlLoading: true,
+                            mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                            allowsInlineMediaPlayback: true,
+                            supportMultipleWindows: true,
+                          ),
+                          onWebViewCreated: (controller) => webViewController = controller,
+                          shouldOverrideUrlLoading: (controller, navigationAction) async {
+                            var uri = navigationAction.request.url!;
+                            if (!["http", "https", "file", "chrome", "data", "javascript", "about"].contains(uri.scheme)) {
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                return NavigationActionPolicy.CANCEL;
+                              }
                             }
-                          }
-                          
-                          if (urlString.contains(dynamicBaseUrl.replaceAll("https://", "").replaceAll("http://", ""))) {
+                            List<String> socialHosts = ["whatsapp.com", "facebook.com", "instagram.com", "t.me", "twitter.com"];
+                            if (socialHosts.any((host) => uri.host.contains(host))) {
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                return NavigationActionPolicy.CANCEL;
+                              }
+                            }
+
                             return NavigationActionPolicy.ALLOW;
-                          }
-                          
-                          if (urlString.startsWith("/")) {
-                            String cleanBase = dynamicBaseUrl.endsWith("/") 
-                                ? dynamicBaseUrl.substring(0, dynamicBaseUrl.length - 1) 
-                                : dynamicBaseUrl;
-                            
-                            controller.loadUrl(urlRequest: URLRequest(url: WebUri(cleanBase + urlString)));
-                            return NavigationActionPolicy.CANCEL;
-                          }
-
-                          return NavigationActionPolicy.ALLOW;
-                        },
-
-                        onProgressChanged: (controller, p) {
-                          setState(() { progress = p / 100; });
-                        },
-                        
-                        onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                          return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                        },
-                      ),
-                      progress < 1.0
-                          ? LinearProgressIndicator(value: progress, color: Colors.black, backgroundColor: Colors.white)
-                          : const SizedBox.shrink(),
-                    ],
+                          },
+                          onProgressChanged: (controller, p) {
+                            setState(() { progress = p / 100; });
+                          },
+                        ),
+                        progress < 1.0
+                            ? LinearProgressIndicator(value: progress, color: Colors.black)
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
                   ),
                 ),
               );
